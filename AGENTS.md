@@ -26,8 +26,9 @@ Nearly all other GPIOs consumed by the 16-bit RGB bus. ST7701S: RGB parallel + 9
 1. **No runtime flash writes while display active.** Flash and PSRAM share a bus; any NVS/LittleFS/OTA write stalls RGB refill → visible flicker (RESEARCH §1 quirk 1). WiFi stack: `WiFi.persistent(false)` + `esp_wifi_set_storage(WIFI_STORAGE_RAM)` mandatory. Escalation path if flicker still observed: `CONFIG_SPIRAM_XIP_FROM_PSRAM`/bounce buffers — needs custom core build, not stock Arduino; treat as last resort.
 2. **Hard reset after every flash/OTA.** RGB + octal PSRAM: without physical reset → white screen. Flashing over CH340 does not auto-reset reliably. Josch presses reset/replugs.
 3. **Touch rotation must match display rotation** or coordinates offset (quirk 3).
-4. Colors only via `src/palette.h` tokens (OKLCH-derived). No inline color literals anywhere else.
-5. Animation/transition durations only via `src/timing.h`. No ad-hoc millisecond constants in UI code.
+4. **GT911 self-reports a bogus 1085×600 matrix — never trust it.** Raw coordinates are native 480×480; esp32-smartdisplay's auto "coordinate adjustment" compresses x to ≤212 / y to ≤384. `fix_gt911_scaling()` in main.cpp detaches `th->config.process_coordinates` after `smartdisplay_init()`. Symptom if it regresses: right/bottom screen half untouchable. (Cost a debugging round 2026-07-24.)
+5. Colors only via `src/palette.h` tokens (OKLCH-derived). No inline color literals anywhere else.
+6. Animation/transition durations only via `src/timing.h`. No ad-hoc millisecond constants in UI code.
 
 ## Versions (exact pins — update only deliberately)
 
