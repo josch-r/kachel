@@ -5,6 +5,7 @@
 
 #include "carousel.h"
 #include "display.h"
+#include "mqtt_client.h"
 #include "time_sync.h"
 
 // The GT911 on this panel self-reports a bogus 1085x600 touch matrix while
@@ -34,6 +35,7 @@ void setup()
     carousel_create();
     display_schedule_init();
     time_sync_begin();
+    mqtt_begin();
     log_i("Carousel up, resting on ambient face");
 }
 
@@ -45,4 +47,5 @@ void loop()
     lv_last_tick = now;
     lv_timer_handler();
     display_schedule_tick();
+    mqtt_tick();
 }
