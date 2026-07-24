@@ -14,6 +14,39 @@ static uint32_t next_connect_ms;
 static uint32_t connect_backoff_ms = 5000;
 static uint32_t next_status_ms;
 
+// topic suffix + contract cadence (0 = on-change, never stale-marked)
+struct topic_spec
+{
+    const char *suffix;
+    uint32_t cadence_s;
+};
+static const topic_spec topic_specs[KACHEL_TOPIC_COUNT] = {
+    {"air", 0}, {"weather", 900}, {"calendar", 300}, {"bring", 300}, {"timer", 0}};
+
+static kachel_state states[KACHEL_TOPIC_COUNT];
+
+static void on_message(char *topic, uint8_t *payload, unsigned int length)
+{
+    const char *suffix = strrchr(topic, '/');
+    if (suffix == nullptr)
+        return;
+    suffix++;
+    for (int i = 0; i < KACHEL_TOPIC_COUNT; i++)
+    {
+        if (strcmp(suffix, topic_specs[i].suffix) == 0)
+        {
+            auto &s = states[i];
+            unsigned int n = min(length, (unsigned int)sizeof(s.payload) - 1);
+            memcpy(s.payload, payload, n);
+            s.payload[n] = '\0';
+            s.received_ms = millis();
+            s.ever_received = true;
+            log_i("state/%s %u bytes", suffix, length);
+            return;
+        }
+    }
+}
+
 static void publish_status()
 {
     char payload[96];
@@ -32,6 +65,7 @@ static void try_connect()
         connect_backoff_ms = 5000;
         next_status_ms = millis() + 60000;
         log_i("MQTT connected");
+        mqtt.subscribe("kachel/state/+");
         publish_status();
     }
     else
@@ -46,6 +80,7 @@ void mqtt_begin()
 {
     mqtt.setServer(MQTT_HOST, MQTT_PORT);
     mqtt.setBufferSize(1024); // contract payloads stay well below this
+    mqtt.setCallback(on_message);
 }
 
 void mqtt_tick()
@@ -71,4 +106,26 @@ void mqtt_tick()
 bool mqtt_connected()
 {
     return mqtt.connected();
+}
+
+const kachel_state *mqtt_state(kachel_topic topic)
+{
+    return &states[topic];
+}
+
+int32_t mqtt_state_age_s(kachel_topic topic)
+{
+    auto &s = states[topic];
+    if (!s.ever_received)
+        return -1;
+    return (int32_t)((millis() - s.received_ms) / 1000);
+}
+
+bool mqtt_state_stale(kachel_topic topic)
+{
+    auto cadence = topic_specs[topic].cadence_s;
+    if (cadence == 0)
+        return false;
+    auto age = mqtt_state_age_s(topic);
+    return age < 0 || (uint32_t)age > 3 * cadence;
 }

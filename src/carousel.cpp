@@ -3,6 +3,7 @@
 #include "palette.h"
 
 static lv_obj_t *tileview;
+static lv_obj_t *tile_objs[4];
 
 struct tile_spec
 {
@@ -30,6 +31,7 @@ lv_obj_t *carousel_create()
     for (uint8_t i = 0; i < 4; i++)
     {
         auto tile = lv_tileview_add_tile(tileview, i, 0, LV_DIR_HOR);
+        tile_objs[i] = tile;
         lv_obj_set_style_bg_color(tile, tiles[i].surface, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(tile, LV_OPA_COVER, LV_PART_MAIN);
 
@@ -54,4 +56,9 @@ bool carousel_is_home()
 {
     auto active = lv_tileview_get_tile_active(tileview);
     return active != nullptr && lv_obj_get_index(active) == KACHEL_LAYER_AMBIENT_FACE;
+}
+
+lv_obj_t *carousel_tile(kachel_layer layer)
+{
+    return tile_objs[layer];
 }

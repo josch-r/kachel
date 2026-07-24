@@ -4,6 +4,7 @@
 #include <esp_lcd_touch.h>
 
 #include "carousel.h"
+#include "debug_view.h"
 #include "display.h"
 #include "mqtt_client.h"
 #include "time_sync.h"
@@ -33,6 +34,7 @@ void setup()
     smartdisplay_init();
     fix_gt911_scaling();
     carousel_create();
+    debug_view_init();
     display_schedule_init();
     time_sync_begin();
     mqtt_begin();
