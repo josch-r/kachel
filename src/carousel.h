@@ -18,3 +18,6 @@ lv_obj_t *carousel_create();
 // Snap back to the ambient face (the §4 recentering path; used by the
 // idle-return logic from task 4 onward).
 void carousel_return_home(bool animated);
+
+// True while the ambient face tile is the active one.
+bool carousel_is_home();

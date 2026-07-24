@@ -105,7 +105,7 @@ void display_schedule_init()
     night_overlay = lv_obj_create(lv_layer_top());
     lv_obj_remove_style_all(night_overlay);
     lv_obj_set_size(night_overlay, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_style_bg_color(night_overlay, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(night_overlay, KACHEL_BG_BLACK, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(night_overlay, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_add_flag(night_overlay, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(night_overlay, LV_OBJ_FLAG_CLICKABLE);
@@ -182,6 +182,7 @@ void display_schedule_tick()
     backlight_set(brightness_now);
 
     // §4 idle auto-return: any non-home layer snaps back after the timeout
-    if (state == SCHED_DAY && !user_active && inactive_ms > KACHEL_IDLE_RETURN_MS)
+    if (state == SCHED_DAY && !user_active && inactive_ms > KACHEL_IDLE_RETURN_MS &&
+        !carousel_is_home())
         carousel_return_home(true);
 }

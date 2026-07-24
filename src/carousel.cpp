@@ -49,3 +49,9 @@ void carousel_return_home(bool animated)
     lv_tileview_set_tile_by_index(tileview, KACHEL_LAYER_AMBIENT_FACE, 0,
                                   animated ? LV_ANIM_ON : LV_ANIM_OFF);
 }
+
+bool carousel_is_home()
+{
+    auto active = lv_tileview_get_tile_active(tileview);
+    return active != nullptr && lv_obj_get_index(active) == KACHEL_LAYER_AMBIENT_FACE;
+}
