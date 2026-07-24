@@ -128,8 +128,14 @@ void display_schedule_tick()
     auto const minute = schedule_minute_of_day();
     auto const state = state_for_minute(minute);
 
-    // touch anywhere wakes to full detail (SPEC §5.12)
-    bool user_active = lv_display_get_inactive_time(nullptr) < 200;
+    // touch anywhere wakes to full detail (SPEC §5.12). Wake arms only on a
+    // real input event — detected as the inactivity timer resetting — because
+    // at boot the timer starts near zero and would otherwise fake 20 s of
+    // "activity" that swallows the whole compressed night phase.
+    uint32_t inactive_ms = lv_display_get_inactive_time(nullptr);
+    static uint32_t prev_inactive_ms;
+    bool user_active = inactive_ms < prev_inactive_ms && inactive_ms < 500;
+    prev_inactive_ms = inactive_ms;
     if (user_active)
         wake_until_ms = now + KACHEL_IDLE_RETURN_MS;
     bool awake = wake_until_ms != 0 && (int32_t)(wake_until_ms - now) > 0;
@@ -176,7 +182,6 @@ void display_schedule_tick()
     backlight_set(brightness_now);
 
     // §4 idle auto-return: any non-home layer snaps back after the timeout
-    if (state == SCHED_DAY && !user_active &&
-        lv_display_get_inactive_time(nullptr) > KACHEL_IDLE_RETURN_MS)
+    if (state == SCHED_DAY && !user_active && inactive_ms > KACHEL_IDLE_RETURN_MS)
         carousel_return_home(true);
 }
