@@ -4,6 +4,8 @@
 #include <esp_lcd_touch.h>
 
 #include "carousel.h"
+#include "display.h"
+#include "time_sync.h"
 
 // The GT911 on this panel self-reports a bogus 1085x600 touch matrix while
 // actually delivering native 480x480 coordinates. esp32-smartdisplay trusts
@@ -30,6 +32,8 @@ void setup()
     smartdisplay_init();
     fix_gt911_scaling();
     carousel_create();
+    display_schedule_init();
+    time_sync_begin();
     log_i("Carousel up, resting on ambient face");
 }
 
@@ -40,4 +44,5 @@ void loop()
     lv_tick_inc(now - lv_last_tick);
     lv_last_tick = now;
     lv_timer_handler();
+    display_schedule_tick();
 }
