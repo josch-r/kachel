@@ -129,7 +129,7 @@ Design-phase freedom within these constraints:
 
 Each milestone ends with evidence (build log, on-device photo/video from Josch, or serial trace). No milestone is "done" on claim alone.
 
-- **M0 — Backend up.** HAOS on Pi; Mosquitto; integrations connected: VeSync, Bring!, CalDAV (iCloud), Open-Meteo weather, Alexa Media Player, bulbs (IKEA via Hue Bridge). Evidence: HA dashboard shows live entities. *(Largely human task, agent-guided.)*
+- **M0 — Backend up.** HAOS on Pi; Mosquitto; integrations connected: VeSync, Bring!, CalDAV (iCloud), Open-Meteo weather, bulbs (IKEA via Hue Bridge); Alexa Media Player deferred to pre-M3 (Amazon account block, §11). Evidence: HA dashboard shows live entities. *(Largely human task, agent-guided.)*
 - **M1 — Shell.** Firmware boots, display + touch verified, 4-layer swipe carousel with placeholder content, brightness schedule, no flicker at rest. Evidence: video of swipe + dim cycle.
 - **M2 — Nervous system.** MQTT connected; all state topics rendered raw (debug view); `cmd/scene` + `cmd/air` round-trip to HA works. Evidence: serial trace + HA log + video of scene trigger.
 - **M3 — Ambient face.** Generative OKLCH surface with clock primary, air/weather encoding, timer + calendar guest cards, dithered gradients (no visible banding), escalation ladder. Evidence: photos at day/dusk/night + across-room glance test.
@@ -160,6 +160,7 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | Name | Kachel |
 | Weather source (M0, 2026-07-23) | Open-Meteo core integration — replaces Bright Sky (HACS-only custom integration; Open-Meteo serves same DWD ICON model for the location, keyless, zero add-on dependency) |
 | IKEA bulb path (M0, 2026-07-23) | Existing Hue Bridge — bulb already paired there; HA Hue integration, fully local. No Zigbee dongle needed (roadmap item void). Echo is a Dot (no built-in Zigbee) — Echo path was never viable |
+| Alexa Media Player (M0, 2026-07-24) | Deferred to pre-M3 — Amazon risk engine blocks third-party logins on the account (verification loop, then SMS refusal; AMP #2853, account-level, not config). First dependent feature is the M3 timer guest card, so M0 closes without it |
 
 ## 11. Open items & roadmap
 
@@ -167,7 +168,8 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 - [x] Bulb path: IKEA bulb on existing Hue Bridge → HA Hue integration (2026-07-23)
 - [x] Purifier model: Core 300S confirmed via sticker (2026-07-23) — has PM2.5 sensor
 - [x] Raspberry Pi: Pi 4 B, 4 GB — HAOS 18.1 running (2026-07-23)
-- [ ] SD card: 8 GB temp card full (add-on installs blocked); 32 GB A1 ordered 2026-07-23 → swap via backup/restore, then install Mosquitto + Alexa Media Player
+- [x] SD card: swapped to 32 GB Intenso 2026-07-24; add-ons unblocked
+- [ ] AMP retry (pre-M3): days of cool-down first; region field must read amazon.de (console trace showed amazon.com marketplace ID — recheck on retry); try different browser (WebAuthn `getClientCapabilities` TypeError in proxy); last resort Amazon support to clear the sign-in flag. 2FA already configured |
 - [ ] 4 scene names + moods — co-design with co-resident
 - [ ] Verify board jumper variant: speaker vs relay
 
