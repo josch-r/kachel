@@ -35,6 +35,9 @@ lv_obj_t *carousel_create()
         lv_obj_set_style_bg_color(tile, tiles[i].surface, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(tile, LV_OPA_COVER, LV_PART_MAIN);
 
+        if (i == KACHEL_LAYER_AMBIENT_FACE)
+            continue; // the ambient face owns this tile (M3)
+
         auto label = lv_label_create(tile);
         lv_label_set_text_fmt(label, "%s\n%u/4", tiles[i].name, i + 1);
         lv_obj_set_style_text_color(label, KACHEL_TEXT_DIM, LV_PART_MAIN);

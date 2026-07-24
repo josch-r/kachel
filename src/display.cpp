@@ -27,6 +27,8 @@ enum sched_state
     SCHED_BLACK,       // 00:00-06:00
 };
 
+LV_FONT_DECLARE(font_clock_176);
+
 static lv_obj_t *night_overlay;
 static lv_obj_t *night_clock_label;
 static float brightness_now = 1.0f;
@@ -113,7 +115,7 @@ void display_schedule_init()
     night_clock_label = lv_label_create(night_overlay);
     lv_label_set_text(night_clock_label, "--:--");
     lv_obj_set_style_text_color(night_clock_label, KACHEL_NIGHT_AMBER, LV_PART_MAIN);
-    lv_obj_set_style_text_font(night_clock_label, &lv_font_montserrat_48, LV_PART_MAIN);
+    lv_obj_set_style_text_font(night_clock_label, &font_clock_176, LV_PART_MAIN);
     lv_obj_center(night_clock_label);
 
     last_tick_ms = millis();

@@ -3,6 +3,7 @@
 #include <esp32_smartdisplay.h>
 #include <esp_lcd_touch.h>
 
+#include "ambient_face.h"
 #include "carousel.h"
 #include "debug_view.h"
 #include "display.h"
@@ -34,6 +35,7 @@ void setup()
     smartdisplay_init();
     fix_gt911_scaling();
     carousel_create();
+    ambient_face_init(carousel_tile(KACHEL_LAYER_AMBIENT_FACE));
     debug_view_init();
     display_schedule_init();
     time_sync_begin();
@@ -49,5 +51,4 @@ void loop()
     lv_last_tick = now;
     lv_timer_handler();
     display_schedule_tick();
-    mqtt_tick();
 }

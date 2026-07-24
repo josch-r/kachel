@@ -11,18 +11,20 @@
 struct tile_topics
 {
     kachel_layer layer;
-    kachel_topic topics[2];
+    kachel_topic topics[4];
     int count;
 };
+// ambient face tile belongs to the face from M3 on; its raw topics moved here
 static const tile_topics assignments[] = {
-    {KACHEL_LAYER_AMBIENT_FACE, {KACHEL_TOPIC_WEATHER, KACHEL_TOPIC_TIMER}, 2},
     {KACHEL_LAYER_AIR, {KACHEL_TOPIC_AIR}, 1},
-    {KACHEL_LAYER_HOUSEHOLD, {KACHEL_TOPIC_CALENDAR, KACHEL_TOPIC_BRING}, 2},
+    {KACHEL_LAYER_HOUSEHOLD,
+     {KACHEL_TOPIC_CALENDAR, KACHEL_TOPIC_BRING, KACHEL_TOPIC_WEATHER, KACHEL_TOPIC_TIMER},
+     4},
 };
 static const char *topic_names[KACHEL_TOPIC_COUNT] = {
     "air", "weather", "calendar", "bring", "timer"};
 
-static lv_obj_t *debug_labels[4]; // by layer index
+static lv_obj_t *debug_labels[4]; // by layer index; ambient face unused
 
 static void render(lv_timer_t *)
 {
