@@ -35,3 +35,7 @@ int32_t mqtt_state_age_s(kachel_topic topic);
 // True when topic violates the §5.6 stale rule (silent > 3x cadence).
 // On-change topics (air, timer) never report stale.
 bool mqtt_state_stale(kachel_topic topic);
+
+// Command topics (SPEC §7): fire on gesture completion only (§4).
+void mqtt_cmd_scene(uint8_t id); // 1..4
+void mqtt_cmd_air(uint8_t fan);  // 0..3

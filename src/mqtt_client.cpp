@@ -108,6 +108,22 @@ bool mqtt_connected()
     return mqtt.connected();
 }
 
+void mqtt_cmd_scene(uint8_t id)
+{
+    char payload[16];
+    snprintf(payload, sizeof(payload), "{\"id\":%u}", id);
+    mqtt.publish("kachel/cmd/scene", payload);
+    log_i("cmd/scene %s", payload);
+}
+
+void mqtt_cmd_air(uint8_t fan)
+{
+    char payload[16];
+    snprintf(payload, sizeof(payload), "{\"fan\":%u}", fan);
+    mqtt.publish("kachel/cmd/air", payload);
+    log_i("cmd/air %s", payload);
+}
+
 const kachel_state *mqtt_state(kachel_topic topic)
 {
     return &states[topic];

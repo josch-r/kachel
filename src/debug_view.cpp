@@ -64,11 +64,49 @@ void debug_view_init()
         lv_label_set_text(label, "");
         debug_labels[a.layer] = label;
     }
-    auto lights_label = lv_label_create(carousel_tile(KACHEL_LAYER_LIGHTS));
+    auto lights_tile = carousel_tile(KACHEL_LAYER_LIGHTS);
+    auto lights_label = lv_label_create(lights_tile);
     lv_obj_set_style_text_color(lights_label, KACHEL_TEXT_DIM, LV_PART_MAIN);
     lv_obj_align(lights_label, LV_ALIGN_TOP_LEFT, 10, 10);
     lv_label_set_text(lights_label, "");
     debug_labels[KACHEL_LAYER_LIGHTS] = lights_label;
+
+    // M2 round-trip triggers (M4 replaces with real controls):
+    // lights tile: 2x2 scene buttons -> cmd/scene on release (§4: completion only)
+    for (int i = 0; i < 4; i++)
+    {
+        auto btn = lv_button_create(lights_tile);
+        lv_obj_set_size(btn, 200, 160);
+        lv_obj_align(btn, LV_ALIGN_CENTER, (i % 2) ? 110 : -110, (i / 2) ? 130 : -30);
+        lv_obj_set_style_bg_color(btn, KACHEL_SURFACE_LIGHTS, LV_PART_MAIN);
+        lv_obj_set_style_border_color(btn, KACHEL_TEXT_DIM, LV_PART_MAIN);
+        lv_obj_set_style_border_width(btn, 1, LV_PART_MAIN);
+        auto l = lv_label_create(btn);
+        lv_label_set_text_fmt(l, "scene %d", i + 1);
+        lv_obj_set_style_text_color(l, KACHEL_TEXT_PRIMARY, LV_PART_MAIN);
+        lv_obj_center(l);
+        lv_obj_add_event_cb(btn, [](lv_event_t *e)
+                            { mqtt_cmd_scene(1 + (uint8_t)(uintptr_t)lv_event_get_user_data(e)); },
+                            LV_EVENT_CLICKED, (void *)(uintptr_t)i);
+    }
+
+    // air tile: one button cycling fan 0..3
+    auto air_btn = lv_button_create(carousel_tile(KACHEL_LAYER_AIR));
+    lv_obj_set_size(air_btn, 200, 90);
+    lv_obj_align(air_btn, LV_ALIGN_BOTTOM_MID, 0, -20);
+    lv_obj_set_style_bg_color(air_btn, KACHEL_SURFACE_AIR, LV_PART_MAIN);
+    lv_obj_set_style_border_color(air_btn, KACHEL_TEXT_DIM, LV_PART_MAIN);
+    lv_obj_set_style_border_width(air_btn, 1, LV_PART_MAIN);
+    auto air_l = lv_label_create(air_btn);
+    lv_label_set_text(air_l, "fan cycle");
+    lv_obj_set_style_text_color(air_l, KACHEL_TEXT_PRIMARY, LV_PART_MAIN);
+    lv_obj_center(air_l);
+    lv_obj_add_event_cb(air_btn, [](lv_event_t *)
+                        {
+        static uint8_t level = 0;
+        level = (level + 1) % 4;
+        mqtt_cmd_air(level); },
+                        LV_EVENT_CLICKED, nullptr);
 
     lv_timer_create(render, 1000, nullptr);
 }

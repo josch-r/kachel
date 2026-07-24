@@ -37,7 +37,7 @@ automations = {
                     '{"pm25": {{ states("sensor.core_300s_series_pm25") | int(-1) }},'
                     ' "aqi_level": "{{ states("sensor.core_300s_series_luftqualitat") }}",'
                     ' "fan": {% if is_state("' + FAN + '", "off") %}0{% else %}'
-                    '{{ ((state_attr("' + FAN + '", "percentage") | int(0)) / 33) | round(0, "ceil") | int }}{% endif %},'
+                    '{{ (((state_attr("' + FAN + '", "percentage") | int(0)) / 100) * 3) | round(0) | int }}{% endif %},'
                     ' "mode": "{{ state_attr("' + FAN + '", "preset_mode") or "manual" }}",'
                     ' "filter_pct": {{ states("sensor.core_300s_series_restlebensdauer_des_filters") | int(-1) }}}'
                 )}}],
