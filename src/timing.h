@@ -21,3 +21,7 @@ constexpr uint32_t KACHEL_T_PULSE_DECAY_MS = 1600;
 constexpr uint32_t KACHEL_T_NOTABLE_MS = 2000;
 // ambient field shifts (weather/air crossfades) — multi-second (SPEC §5.8)
 constexpr uint32_t KACHEL_T_AMBIENT_MS = 8000;
+// breathing period: 6 cycles/min, the §5.7 ceiling
+constexpr uint32_t KACHEL_T_BREATH_PERIOD_MS = 10000;
+// done-timer self-decay fallback when nobody taps (§5.5)
+constexpr uint32_t KACHEL_T_DONE_DECAY_MS = 60000;

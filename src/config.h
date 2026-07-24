@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#define KACHEL_FW_VERSION "0.2.0-m2"
+#define KACHEL_FW_VERSION "0.3.0-m3"
 
 // --- schedule (SPEC §5.12; all times configurable here) ---
 constexpr int KACHEL_DAY_START_MIN = 6 * 60;    // 06:00 back to day scale

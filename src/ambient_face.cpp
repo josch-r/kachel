@@ -311,7 +311,7 @@ static void tick(lv_timer_t *)
         current.stops[i] = oklab_lerp(current.stops[i], target.stops[i], t);
     current.clock = oklab_lerp(current.clock, target.clock, t);
     // breathing (§F): horizon L ±0.010, 6 cycles/min; §5.7 ceiling
-    float breath = 0.010f * sinf((float)now_ms * 2.0f * (float)M_PI / 10000.0f);
+    float breath = 0.010f * sinf((float)now_ms * 2.0f * (float)M_PI / KACHEL_T_BREATH_PERIOD_MS);
     if (timer_ui == TIMER_DONE)
         breath = 0; // suspended during the done beat per design
     render_gradient(current, breath);
@@ -375,7 +375,7 @@ static void tick(lv_timer_t *)
                 timer_done_ms = now_ms;
             }
             // §5.5 self-decay fallback if nobody taps
-            if (timer_ui == TIMER_DONE && now_ms - timer_done_ms > 60000)
+            if (timer_ui == TIMER_DONE && now_ms - timer_done_ms > KACHEL_T_DONE_DECAY_MS)
             {
                 fade_to(timer_card, LV_OPA_COVER, LV_OPA_TRANSP, KACHEL_T_CARD_OUT_MS, true);
                 timer_ui = TIMER_HIDDEN;
@@ -429,6 +429,9 @@ void ambient_face_init(lv_obj_t *tile)
     lv_obj_align(timer_card, LV_ALIGN_CENTER, 0, 136);
     lv_obj_set_style_radius(timer_card, 24, LV_PART_MAIN);
     lv_obj_set_style_border_width(timer_card, 1, LV_PART_MAIN);
+    // §4 one-gesture silence must work on the card itself: bubble the tap
+    // up to the tile's dismiss handler (card keeps default CLICKABLE)
+    lv_obj_add_flag(timer_card, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(timer_card, LV_OBJ_FLAG_HIDDEN);
     timer_name_label = lv_label_create(timer_card);
     lv_obj_set_style_text_font(timer_name_label, &font_guest_22, LV_PART_MAIN);
