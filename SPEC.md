@@ -161,6 +161,8 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | Weather source (M0, 2026-07-23) | Open-Meteo core integration — replaces Bright Sky (HACS-only custom integration; Open-Meteo serves same DWD ICON model for the location, keyless, zero add-on dependency) |
 | IKEA bulb path (M0, 2026-07-23) | Existing Hue Bridge — bulb already paired there; HA Hue integration, fully local. No Zigbee dongle needed (roadmap item void). Echo is a Dot (no built-in Zigbee) — Echo path was never viable |
 | Alexa Media Player (M0, 2026-07-24) | Deferred to pre-M3 — Amazon risk engine blocks third-party logins on the account (verification loop, then SMS refusal; AMP #2853, account-level, not config). First dependent feature is the M3 timer guest card, so M0 closes without it |
+| Board variant (M1, 2026-07-24) | Relay variant confirmed — GPIO40 click test audible + 3 relay connectors on case back, no speaker. §5.14 resolves for v1: urgent = one visual pulse, no sound. Relays unused by Kachel |
+| M1 accepted (2026-07-24) | Shell complete: display, touch (GT911 matrix-lie fix), 4-layer carousel, WiFi/SNTP clock, §5.12 schedule, 10.5-min no-flicker soak with WiFi live. Reviewer verdict ACCEPT; deferred notes owned by M3 (120px clock glyph) and M5 (snap-timing audit) |
 
 ## 11. Open items & roadmap
 
@@ -171,6 +173,6 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 - [x] SD card: swapped to 32 GB Intenso 2026-07-24; add-ons unblocked
 - [ ] AMP retry (pre-M3): days of cool-down first; region field must read amazon.de (console trace showed amazon.com marketplace ID — recheck on retry); try different browser (WebAuthn `getClientCapabilities` TypeError in proxy); last resort Amazon support to clear the sign-in flag. 2FA already configured |
 - [ ] 4 scene names + moods — co-design with co-resident
-- [ ] Verify board jumper variant: speaker vs relay
+- [x] Board jumper variant: relay (GPIO40 click test, 2026-07-24) — no speaker, §5.14 = visual pulse only
 
 **Roadmap (v2+):** LD2410 presence sensor (sleep-until-someone's-there), one-tap timer presets, KVB departures (unofficial API), provisioning portal + OTA, enclosure/stand (3D print), ambient-light sensor for true Ambient EQ.
