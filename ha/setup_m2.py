@@ -115,8 +115,10 @@ automations = {
         "actions": [{
             "choose": [
                 {"conditions": [{"condition": "template", "value_template": "{{ trigger.payload_json.id == %d }}" % i}],
-                 "sequence": [{"action": "scene.turn_on", "target": {"entity_id": "scene.kachel_%d" % i}}]}
-                for i in (1, 2, 3, 4)]}],
+                 "sequence": [{"action": "scene.turn_on", "target": {"entity_id": eid}}]}
+                for i, eid in {
+                    1: "scene.kachel_1_stub_alles_an", 2: "scene.kachel_2_stub_gemuetlich",
+                    3: "scene.kachel_3_stub_fokus", 4: "scene.kachel_4_stub_alles_aus"}.items()]}],
         "mode": "single"},
 
     "kachel_cmd_air": {
