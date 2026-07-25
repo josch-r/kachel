@@ -3,9 +3,14 @@
 
 #include <cstdint>
 
-#define KACHEL_FW_VERSION "0.4.0-m4"
+#define KACHEL_FW_VERSION "0.5.0-m5"
 
 // --- schedule (SPEC §5.12; all times configurable here) ---
+// Valid ranges (M5 audit): the schedule state machine assumes the order
+// DAY_START < NIGHT_START, with BLACK_START in [0, DAY_START) — i.e. the
+// black window wraps midnight (NIGHT->BLACK->DAY). A BLACK_START inside the
+// day window is unsupported. RAMP_MINUTES must fit before BLACK_START
+// (NIGHT_START + RAMP < 24 h + BLACK_START).
 constexpr int KACHEL_DAY_START_MIN = 6 * 60;    // 06:00 back to day scale
 constexpr int KACHEL_NIGHT_START_MIN = 22 * 60; // 22:00 ramp + clock-only
 constexpr int KACHEL_BLACK_START_MIN = 0;       // 00:00 screen black
@@ -16,7 +21,7 @@ constexpr float KACHEL_BRIGHT_DAY = 1.0f;
 constexpr float KACHEL_BRIGHT_NIGHT = 0.01f; // ultra-dim floor (min PWM duty 1%)
 
 // --- interaction (SPEC §4) ---
-constexpr uint32_t KACHEL_IDLE_RETURN_MS = 20000; // 20 s, valid range 10-30 s
+constexpr uint32_t KACHEL_IDLE_RETURN_MS = 20000; // 20 s, spec range 10-30 s
 
 // --- PM2.5 history ring (§10 decision: device-side, resets on reboot) ---
 constexpr uint32_t KACHEL_PM25_SAMPLE_S = 300; // one sample per 5 min

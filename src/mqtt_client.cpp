@@ -63,9 +63,11 @@ static void on_message(char *topic, uint8_t *payload, unsigned int length)
 
 static void publish_status()
 {
-    char payload[96];
-    snprintf(payload, sizeof(payload), "{\"fw\":\"%s\",\"rssi\":%d,\"uptime\":%lu}",
-             KACHEL_FW_VERSION, WiFi.RSSI(), millis() / 1000);
+    char payload[160];
+    snprintf(payload, sizeof(payload),
+             "{\"fw\":\"%s\",\"rssi\":%d,\"uptime\":%lu,\"heap\":%lu,\"psram_free\":%lu}",
+             KACHEL_FW_VERSION, WiFi.RSSI(), millis() / 1000,
+             (unsigned long)ESP.getFreeHeap(), (unsigned long)ESP.getFreePsram());
     mqtt.publish("kachel/sys/status", payload);
 }
 

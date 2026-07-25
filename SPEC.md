@@ -111,7 +111,7 @@ Design-phase freedom within these constraints:
 | `kachel/state/timer` | →device | `{label, ends_at}` or `{}` | on change |
 | `kachel/cmd/scene` | device→ | `{id: 1..4}` | user action |
 | `kachel/cmd/air` | device→ | `{fan: 0..3}` or `{mode: "auto"}` | user action |
-| `kachel/sys/status` | device→ | `{fw, rssi, uptime}` | 60 s |
+| `kachel/sys/status` | device→ | `{fw, rssi, uptime, heap, psram_free}` | 60 s |
 
 - Stale rule: any state topic silent > 3× its cadence ⇒ staleness mark on that datum (§5.6).
 - Config (WiFi/MQTT creds): compile-time `secrets.h` for v1; provisioning portal = roadmap.

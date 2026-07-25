@@ -1,6 +1,7 @@
 #include "carousel.h"
 
 #include "palette.h"
+#include "timing.h"
 
 static lv_obj_t *tileview;
 static lv_obj_t *tile_objs[4];
@@ -25,6 +26,9 @@ lv_obj_t *carousel_create()
     tileview = lv_tileview_create(screen);
     lv_obj_set_style_bg_opa(tileview, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_scrollbar_mode(tileview, LV_SCROLLBAR_MODE_OFF);
+    // programmatic snap (return-home) rides the shared transition token;
+    // swipe-release throw stays indev-computed (M5 timing audit)
+    lv_obj_set_style_anim_duration(tileview, KACHEL_T_SNAP_MS, LV_PART_MAIN);
 
     for (uint8_t i = 0; i < 4; i++)
     {

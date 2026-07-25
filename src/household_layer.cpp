@@ -7,6 +7,7 @@
 #include "mqtt_client.h"
 #include "palette.h"
 #include "state_model.h"
+#include "timing.h"
 
 LV_FONT_DECLARE(font_guest_22);
 
@@ -128,5 +129,5 @@ void household_layer_init(lv_obj_t *tile)
     for (int i = 0; i < KACHEL_BRING_ITEMS_MAX; i++)
         bring_items[i] = make_line(tile, KACHEL_TEXT_PRIMARY, 274 + i * 38);
 
-    lv_timer_create(refresh, 1000, nullptr);
+    lv_timer_create(refresh, KACHEL_T_LAYER_POLL_MS, nullptr);
 }

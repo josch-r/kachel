@@ -306,7 +306,7 @@ static void tick(lv_timer_t *)
 
     // --- gradient: slew toward target over the ambient beat, breathe at rest ---
     target = params_for_now();
-    float t = 250.0f / KACHEL_T_AMBIENT_MS;
+    float t = (float)KACHEL_T_FACE_TICK_MS / KACHEL_T_AMBIENT_MS;
     for (int i = 0; i < 3; i++)
         current.stops[i] = oklab_lerp(current.stops[i], target.stops[i], t);
     current.clock = oklab_lerp(current.clock, target.clock, t);
@@ -452,5 +452,5 @@ void ambient_face_init(lv_obj_t *tile)
         } },
                         LV_EVENT_CLICKED, nullptr);
 
-    lv_timer_create(tick, 250, nullptr);
+    lv_timer_create(tick, KACHEL_T_FACE_TICK_MS, nullptr);
 }

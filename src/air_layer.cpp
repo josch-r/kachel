@@ -206,5 +206,5 @@ void air_layer_init(lv_obj_t *tile)
         lv_obj_add_event_cb(btn, fan_pressed, LV_EVENT_CLICKED, (void *)(uintptr_t)i);
     }
 
-    lv_timer_create(refresh, 1000, nullptr);
+    lv_timer_create(refresh, KACHEL_T_LAYER_POLL_MS, nullptr);
 }

@@ -185,6 +185,10 @@ static bool ever_sampled;
 
 bool state_history_tick()
 {
+    // fail calm (§5.6): broker gone = no fresh pm25 — pause sampling rather
+    // than fabricate a flat trace from the last-known value
+    if (!mqtt_connected())
+        return false;
     kachel_air a = state_air();
     if (!a.valid)
         return false;

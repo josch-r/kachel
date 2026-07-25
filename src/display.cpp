@@ -129,6 +129,12 @@ void display_schedule_tick()
 
     auto const minute = schedule_minute_of_day();
     auto const state = state_for_minute(minute);
+    static sched_state logged_state = SCHED_DAY;
+    if (state != logged_state)
+    {
+        log_i("schedule: %d -> %d at minute %d", logged_state, state, minute);
+        logged_state = state;
+    }
 
     // touch anywhere wakes to full detail (SPEC §5.12). Wake arms only on a
     // real input event — detected as the inactivity timer resetting — because

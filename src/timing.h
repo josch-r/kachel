@@ -25,3 +25,11 @@ constexpr uint32_t KACHEL_T_AMBIENT_MS = 8000;
 constexpr uint32_t KACHEL_T_BREATH_PERIOD_MS = 10000;
 // done-timer self-decay fallback when nobody taps (§5.5)
 constexpr uint32_t KACHEL_T_DONE_DECAY_MS = 60000;
+
+// --- polling cadences (data refresh, not animation — M5 timing audit) ---
+// ambient face render tick: phase ramps + breathing resolution
+constexpr uint32_t KACHEL_T_FACE_TICK_MS = 250;
+// layer data refresh: 1 Hz matches the fastest human-visible datum (timer)
+constexpr uint32_t KACHEL_T_LAYER_POLL_MS = 1000;
+// carousel snap (programmatic return-home ride; swipe throw is indev-owned)
+constexpr uint32_t KACHEL_T_SNAP_MS = KACHEL_T_TRANSITION_MS;
