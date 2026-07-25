@@ -158,6 +158,14 @@ void mqtt_cmd_air(uint8_t fan)
     xQueueSend(cmd_queue, &m, 0);
 }
 
+void mqtt_cmd_air_auto()
+{
+    cmd_msg m;
+    strlcpy(m.topic, "kachel/cmd/air", sizeof(m.topic));
+    strlcpy(m.payload, "{\"mode\":\"auto\"}", sizeof(m.payload));
+    xQueueSend(cmd_queue, &m, 0);
+}
+
 const kachel_state *mqtt_state(kachel_topic topic)
 {
     // raw pointer kept for the debug view; writes are short memcpys under

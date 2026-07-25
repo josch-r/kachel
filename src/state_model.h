@@ -21,6 +21,7 @@ struct kachel_air
 {
     int pm25 = -1; // -1 = unknown
     int fan = 0;
+    bool auto_mode = false; // preset "auto" active (§10 decision 2026-07-25)
     int filter_pct = -1;
     bool valid = false;
 };

@@ -78,6 +78,7 @@ void state_model_ingest(int topic, const char *payload)
     case KACHEL_TOPIC_AIR:
         air.pm25 = doc["pm25"] | -1;
         air.fan = doc["fan"] | 0;
+        air.auto_mode = strcmp(doc["mode"] | "manual", "auto") == 0;
         air.filter_pct = doc["filter_pct"] | -1;
         air.valid = air.pm25 >= 0;
         break;

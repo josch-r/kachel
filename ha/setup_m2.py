@@ -88,16 +88,16 @@ automations = {
         "alias": "Kachel: publish state/bring",
         "triggers": [
             {"trigger": "time_pattern", "minutes": "/5"},
-            {"trigger": "state", "entity_id": ["todo.einkaufsliste"]},
+            {"trigger": "state", "entity_id": ["todo.shared_list"]},
             {"trigger": "homeassistant", "event": "start"},
         ],
         "actions": [
-            {"action": "todo.get_items", "target": {"entity_id": "todo.einkaufsliste"},
+            {"action": "todo.get_items", "target": {"entity_id": "todo.shared_list"},
              "data": {"status": "needs_action"}, "response_variable": "items"},
             {"action": "mqtt.publish", "data": {
                 "topic": "kachel/state/bring", "retain": True,
                 "payload": (
-                    '{% set li = items["todo.einkaufsliste"]["items"] %}'
+                    '{% set li = items["todo.shared_list"]["items"] %}'
                     '{{ {"count": li | count, "items": li[:5] | map(attribute="summary") | list} | tojson }}'
                 )}}],
         "mode": "single"},
@@ -126,12 +126,17 @@ automations = {
         "triggers": [{"trigger": "mqtt", "topic": "kachel/cmd/air"}],
         "actions": [{
             "choose": [
-                {"conditions": [{"condition": "template", "value_template": "{{ trigger.payload_json.fan == 0 }}"}],
+                {"conditions": [{"condition": "template", "value_template": "{{ trigger.payload_json.get('mode', '') == 'auto' }}"}],
+                 "sequence": [
+                     {"action": "fan.turn_on", "target": {"entity_id": FAN}},
+                     {"action": "fan.set_preset_mode", "target": {"entity_id": FAN},
+                      "data": {"preset_mode": "auto"}}]},
+                {"conditions": [{"condition": "template", "value_template": "{{ trigger.payload_json.get('fan', -1) == 0 }}"}],
                  "sequence": [{"action": "fan.turn_off", "target": {"entity_id": FAN}}]}],
             "default": [
                 {"action": "fan.turn_on", "target": {"entity_id": FAN}},
                 {"action": "fan.set_percentage", "target": {"entity_id": FAN},
-                 "data": {"percentage": "{{ [33, 66, 100][(trigger.payload_json.fan | int) - 1] }}"}}]}],
+                 "data": {"percentage": "{{ [33, 66, 100][(trigger.payload_json.get('fan', 1) | int) - 1] }}"}}]}],
         "mode": "single"},
 }
 

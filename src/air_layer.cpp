@@ -15,7 +15,9 @@ static lv_obj_t *pm25_label;
 static lv_obj_t *filter_label;
 static lv_obj_t *chart;
 static lv_chart_series_t *series;
-static lv_obj_t *fan_btns[4];
+// 5 segments of one fan control: Aus, Auto, manual 1..3 (§10 2026-07-25)
+static constexpr int FAN_SEGMENTS = 5;
+static lv_obj_t *fan_btns[FAN_SEGMENTS];
 static lv_obj_t *stale_dot;
 
 static int32_t chart_vals[KACHEL_PM25_HISTORY_N];
@@ -25,7 +27,23 @@ static int shown_fan = -1;
 
 static void fan_pressed(lv_event_t *e)
 {
-    mqtt_cmd_air((uint8_t)(uintptr_t)lv_event_get_user_data(e));
+    int seg = (int)(uintptr_t)lv_event_get_user_data(e);
+    if (seg == 1)
+        mqtt_cmd_air_auto();
+    else
+        mqtt_cmd_air(seg == 0 ? 0 : seg - 1);
+}
+
+// segment index the state feed points at: 0=Aus, 1=Auto, 2..4=manual 1..3
+static int fan_segment(const kachel_air &a)
+{
+    if (!a.valid)
+        return -1;
+    if (a.auto_mode)
+        return 1;
+    if (a.fan <= 0)
+        return 0;
+    return a.fan >= 3 ? 4 : a.fan + 1;
 }
 
 static void refresh(lv_timer_t *)
@@ -54,13 +72,13 @@ static void refresh(lv_timer_t *)
     }
 
     // fan highlight follows the state feed, not the tap (M2 deferral closed)
-    int fan = a.valid ? a.fan : -1;
-    if (fan != shown_fan)
+    int seg = fan_segment(a);
+    if (seg != shown_fan)
     {
-        shown_fan = fan;
-        for (int i = 0; i < 4; i++)
+        shown_fan = seg;
+        for (int i = 0; i < FAN_SEGMENTS; i++)
         {
-            bool active = (i == fan);
+            bool active = (i == seg);
             lv_obj_set_style_border_color(fan_btns[i],
                                           active ? KACHEL_TEXT_PRIMARY : KACHEL_TEXT_DIM,
                                           LV_PART_MAIN);
@@ -155,19 +173,20 @@ void air_layer_init(lv_obj_t *tile)
     lv_obj_set_style_text_opa(chart_caption, LV_OPA_60, LV_PART_MAIN);
     lv_obj_align(chart_caption, LV_ALIGN_TOP_RIGHT, -32, 312);
 
-    // fan levels 0..3 — four fixed targets, ≥80 px + ext click area (§4)
+    // one fan control, five segments (Aus/Auto/1/2/3) — 80 px floor (§4),
+    // ext click area recovers the tightened gaps
     static lv_style_transition_dsc_t trans;
     static const lv_style_prop_t props[] = {LV_STYLE_BG_OPA, LV_STYLE_PROP_INV};
     lv_style_transition_dsc_init(&trans, props, lv_anim_path_ease_out,
                                  KACHEL_T_FEEDBACK_MS, 0, nullptr);
-    static const char *fan_names[4] = {"Aus", "1", "2", "3"};
-    for (int i = 0; i < 4; i++)
+    static const char *fan_names[FAN_SEGMENTS] = {"Aus", "Auto", "1", "2", "3"};
+    for (int i = 0; i < FAN_SEGMENTS; i++)
     {
         auto btn = lv_button_create(tile);
         fan_btns[i] = btn;
-        lv_obj_set_size(btn, 96, 96);
-        lv_obj_align(btn, LV_ALIGN_BOTTOM_LEFT, 32 + i * 106, -32);
-        lv_obj_set_ext_click_area(btn, 10);
+        lv_obj_set_size(btn, 80, 96);
+        lv_obj_align(btn, LV_ALIGN_BOTTOM_LEFT, 24 + i * 88, -32);
+        lv_obj_set_ext_click_area(btn, 4);
         lv_obj_set_style_radius(btn, 20, LV_PART_MAIN);
         lv_obj_set_style_shadow_width(btn, 0, LV_PART_MAIN);
         lv_obj_set_style_bg_color(btn, KACHEL_TEXT_DIM, LV_PART_MAIN);

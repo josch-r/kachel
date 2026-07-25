@@ -38,4 +38,5 @@ bool mqtt_state_stale(kachel_topic topic);
 
 // Command topics (SPEC §7): fire on gesture completion only (§4).
 void mqtt_cmd_scene(uint8_t id); // 1..4
-void mqtt_cmd_air(uint8_t fan);  // 0..3
+void mqtt_cmd_air(uint8_t fan);  // 0..3 (manual level; 0 = off)
+void mqtt_cmd_air_auto();        // {"mode":"auto"} — §10 decision 2026-07-25

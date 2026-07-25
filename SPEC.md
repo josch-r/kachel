@@ -110,7 +110,7 @@ Design-phase freedom within these constraints:
 | `kachel/state/bring` | →device | `{count, items:[top 5]}` | 5 min |
 | `kachel/state/timer` | →device | `{label, ends_at}` or `{}` | on change |
 | `kachel/cmd/scene` | device→ | `{id: 1..4}` | user action |
-| `kachel/cmd/air` | device→ | `{fan: 0..3}` | user action |
+| `kachel/cmd/air` | device→ | `{fan: 0..3}` or `{mode: "auto"}` | user action |
 | `kachel/sys/status` | device→ | `{fw, rssi, uptime}` | 60 s |
 
 - Stale rule: any state topic silent > 3× its cadence ⇒ staleness mark on that datum (§5.6).
@@ -168,6 +168,8 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | M3 accepted (2026-07-25) | Ambient face live on fw 0.3.0-m3. Across-room glance test passed; timer guest card incl. T−60 cue, done pulse, tap-silence verified via `tools/timer_demo.py` broker round-trip. Day/dusk/night photo evidence waived by Josch (§5.12 dim behavior separately evidenced in M1 video) |
 | PM2.5 history storage (M4, 2026-07-25) | Device-side ring buffer in PSRAM — 24 h at 5-min samples, resets on reboot. Contract gains no history topic; Air layer chart renders from local accumulation. Approved as v1 trade-off |
 | Face styling pass (parked, 2026-07-25) | Josch direction: face should be "more proactive/provocative in its calmness — even calmer"; typographic inspiration: Nothing (NDot/NType). Deferred until after M4/M5 functional work; lands as token+typeface diff against docs/DESIGN_FACE.md via change protocol. Red stays forbidden regardless (hue law) |
+| Fan auto mode (M4, 2026-07-25) | Josch request: purifier's auto preset is the daily default and must be settable from the tile. `cmd/air` gains `{mode:"auto"}` variant; state `mode` field now drives the highlight. UI = one 5-segment control (Aus/Auto/1/2/3, 80 px targets) — counts as one primary choice under §4's max-4 rule (one decision dimension), not five |
+| Bring! list rewire (M4, 2026-07-25) | state/bring automation targeted empty `todo.einkaufsliste`; real shared list is `todo.shared_list` ("shared*list"). Config fix in ha/setup_m2.py, verified live (count 5) |
 
 ## 11. Open items & roadmap
 
