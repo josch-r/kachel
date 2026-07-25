@@ -398,11 +398,15 @@ static void slot_show(bool with_count)
     {
         lv_obj_remove_flag(slot_count_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_align(slot_label, LV_ALIGN_BOTTOM_MID, 0, -6); // countdown above
+        lv_obj_set_style_bg_opa(slot_band, 160, LV_PART_MAIN); // timer earns a stage
     }
     else
     {
         lv_obj_add_flag(slot_count_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_align(slot_label, LV_ALIGN_CENTER, 0, 0); // wrapped text centers
+        // calendar text sits bare on the field — the plinth over the bright
+        // seam zone read as a gray stripe (photo verdict 2026-07-25)
+        lv_obj_set_style_bg_opa(slot_band, LV_OPA_TRANSP, LV_PART_MAIN);
     }
 }
 
@@ -418,7 +422,6 @@ static void slot_hide()
 static void reset_slot_style()
 {
     lv_obj_set_style_bg_color(slot_band, oklch_to_lv(SLOT_FILL), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(slot_band, 160, LV_PART_MAIN);
     lv_obj_set_style_text_color(slot_label, oklch_to_lv(SLOT_TEXT), LV_PART_MAIN);
     lv_obj_set_style_text_color(slot_count_label, oklch_to_lv(SLOT_TEXT), LV_PART_MAIN);
 }
