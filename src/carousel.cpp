@@ -7,16 +7,14 @@ static lv_obj_t *tile_objs[4];
 
 struct tile_spec
 {
-    const char *name;
     lv_color_t surface;
 };
 
-// M1 placeholders: layer name + index on token surfaces. Real content M3/M4.
 static const tile_spec tiles[4] = {
-    {"lights", KACHEL_SURFACE_LIGHTS},
-    {"ambient face", KACHEL_BG_REST},
-    {"air", KACHEL_SURFACE_AIR},
-    {"household", KACHEL_SURFACE_HOUSE},
+    {KACHEL_SURFACE_LIGHTS},
+    {KACHEL_BG_REST},
+    {KACHEL_SURFACE_AIR},
+    {KACHEL_SURFACE_HOUSE},
 };
 
 lv_obj_t *carousel_create()
@@ -34,15 +32,7 @@ lv_obj_t *carousel_create()
         tile_objs[i] = tile;
         lv_obj_set_style_bg_color(tile, tiles[i].surface, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(tile, LV_OPA_COVER, LV_PART_MAIN);
-
-        if (i == KACHEL_LAYER_AMBIENT_FACE)
-            continue; // the ambient face owns this tile (M3)
-
-        auto label = lv_label_create(tile);
-        lv_label_set_text_fmt(label, "%s\n%u/4", tiles[i].name, i + 1);
-        lv_obj_set_style_text_color(label, KACHEL_TEXT_DIM, LV_PART_MAIN);
-        lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-        lv_obj_center(label);
+        // content: ambient face (M3) and layer modules (M4) own their tiles
     }
 
     carousel_return_home(false);

@@ -1,12 +1,14 @@
-// Kachel M1 — shell: boot, display, touch, carousel.
+// Kachel — boot, display, touch, carousel, layer modules.
 #include <Arduino.h>
 #include <esp32_smartdisplay.h>
 #include <esp_lcd_touch.h>
 
+#include "air_layer.h"
 #include "ambient_face.h"
 #include "carousel.h"
-#include "debug_view.h"
 #include "display.h"
+#include "household_layer.h"
+#include "lights_layer.h"
 #include "mqtt_client.h"
 #include "time_sync.h"
 
@@ -36,7 +38,9 @@ void setup()
     fix_gt911_scaling();
     carousel_create();
     ambient_face_init(carousel_tile(KACHEL_LAYER_AMBIENT_FACE));
-    debug_view_init();
+    lights_layer_init(carousel_tile(KACHEL_LAYER_LIGHTS));
+    air_layer_init(carousel_tile(KACHEL_LAYER_AIR));
+    household_layer_init(carousel_tile(KACHEL_LAYER_HOUSEHOLD));
     display_schedule_init();
     time_sync_begin();
     mqtt_begin();

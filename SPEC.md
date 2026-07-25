@@ -165,6 +165,9 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | M1 accepted (2026-07-24) | Shell complete: display, touch (GT911 matrix-lie fix), 4-layer carousel, WiFi/SNTP clock, §5.12 schedule, 10.5-min no-flicker soak with WiFi live. Reviewer verdict ACCEPT; deferred notes owned by M3 (120px clock glyph) and M5 (snap-timing audit) |
 | Weather contract field (M2, 2026-07-24) | `precip_prob` → `precip_12h_mm` (sum of next 12 hourly precipitation values, mm) — no forecast source in this HA exposes precipitation probability; §6 "rain later" cue derives from mm equally |
 | M2 accepted (2026-07-24) | Nervous system live: MQTT connect ~300 ms, 5 state topics retained with real HA data, raw debug view with staleness ages, cmd/scene + cmd/air round-trips verified closed-loop (~800 ms). Reviewer REJECT→fixed: fan mapping emitted 4 at full speed, now contract 0..3 verified at all speeds. Known deferrals: fan-cycle counter binds to state feed in M4; blocking broker-connect revisited before M3 face |
+| M3 accepted (2026-07-25) | Ambient face live on fw 0.3.0-m3. Across-room glance test passed; timer guest card incl. T−60 cue, done pulse, tap-silence verified via `tools/timer_demo.py` broker round-trip. Day/dusk/night photo evidence waived by Josch (§5.12 dim behavior separately evidenced in M1 video) |
+| PM2.5 history storage (M4, 2026-07-25) | Device-side ring buffer in PSRAM — 24 h at 5-min samples, resets on reboot. Contract gains no history topic; Air layer chart renders from local accumulation. Approved as v1 trade-off |
+| Face styling pass (parked, 2026-07-25) | Josch direction: face should be "more proactive/provocative in its calmness — even calmer"; typographic inspiration: Nothing (NDot/NType). Deferred until after M4/M5 functional work; lands as token+typeface diff against docs/DESIGN_FACE.md via change protocol. Red stays forbidden regardless (hue law) |
 
 ## 11. Open items & roadmap
 
