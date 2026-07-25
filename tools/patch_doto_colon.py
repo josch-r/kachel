@@ -1,79 +1,77 @@
 #!/usr/bin/env python3
-"""Patch the Doto colon in generated LVGL fonts: the family draws each colon
-period as a plus-shaped 5-dot cluster; Kachel wants one matrix dot per period
-(Josch, 2026-07-25). Rewrites the ':' glyph bitmap in place — rerun after any
-font regeneration.
+"""Patch the Doto colon in generated LVGL fonts: Doto draws each colon period
+as a plus-shaped 5-dot cluster; Kachel wants one matrix dot per period
+(Josch, 2026-07-25). Rewrites the ':' glyph bitmap in place — rerun after
+every font regeneration.
+
+Format notes (cost a debugging round): lv_font_conv --no-compress emits the
+glyph bitmap as a CONTINUOUS 4bpp bitstream (rows are not byte-aligned) and
+prints bytes as minimal hex (0x0, not 0x00) — parse with {1,2}, not {2}.
 
 Usage: python3 tools/patch_doto_colon.py src/font_clock_100.c src/font_timer_44.c
 """
-import math
 import re
 import sys
 from pathlib import Path
 
 
-def make_dot_bitmap(box_w: int, box_h: int, dot_d: float) -> list[list[int]]:
-    """4bpp rows: two rounded-square dots (ROND 25) at 11% / 89% box height."""
-    rows = [[0] * box_w for _ in range(box_h)]
-    centers = [(box_w / 2, box_h * 0.11), (box_w / 2, box_h * 0.89)]
-    half = dot_d / 2
-    corner = dot_d * 0.25  # ROND 25 corner radius
-    for cx, cy in centers:
-        y0, y1 = int(max(0, cy - half - 1)), int(min(box_h, cy + half + 2))
-        for y in range(y0, y1):
-            for x in range(box_w):
-                # signed distance to rounded square, 2x2 supersample
-                cov = 0.0
-                for sy in (0.25, 0.75):
-                    for sx in (0.25, 0.75):
-                        dx = abs(x + sx - cx) - (half - corner)
-                        dy = abs(y + sy - cy) - (half - corner)
-                        dx, dy = max(dx, 0.0), max(dy, 0.0)
-                        d = math.hypot(dx, dy) - corner
-                        cov += max(0.0, min(1.0, 0.5 - d))
-                v = int(round(cov / 4 * 15))
-                if v > rows[y][x]:
-                    rows[y][x] = v
-    return rows
-
-
 def patch(path: Path) -> None:
     text = path.read_text()
-
-    # colon is the last glyph (range 0x30-0x3A): last non-zero dsc entry
     dsc = re.findall(
-        r"\{\.bitmap_index = (\d+), \.adv_w = \d+, \.box_w = (\d+), \.box_h = (\d+), "
-        r"\.ofs_x = (-?\d+), \.ofs_y = (-?\d+)\}",
-        text,
-    )
-    bitmap_index, box_w, box_h = (int(v) for v in dsc[-1][:3])
+        r"\{\.bitmap_index = (\d+), .*?\.box_w = (\d+), \.box_h = (\d+),", text)
+    bi, bw, bh = (int(v) for v in dsc[-1])  # colon = last glyph (0x30-0x3A)
 
-    # digit dot diameter: Doto dot = 146.5/1000 em; em = line height source —
-    # infer from box_h (colon spans 646/1000 em)
-    em = box_h * 1000 / 646
-    dot_d = 146.5 / 1000 * em
+    start = text.index("glyph_bitmap[] = {")
+    end = text.index("glyph_dsc[]", start)
+    section = text[start:end]
+    close = start + section.rindex("};")
+    hexes = re.findall(r"0x([0-9a-fA-F]{1,2})\b", section[: section.rindex("};")])
+    data = bytearray(int(x, 16) for x in hexes)
 
-    rows = make_dot_bitmap(box_w, box_h, dot_d)
-    row_bytes = []
-    for r in rows:
-        packed = []
-        for i in range(0, box_w, 2):
-            hi = r[i]
-            lo = r[i + 1] if i + 1 < box_w else 0
-            packed.append(f"0x{(hi << 4) | lo:02x}")
-        row_bytes.append(", ".join(packed))
-    body = ",\n    ".join(row_bytes)
+    def px(y, x):
+        bit = (y * bw + x) * 4
+        b = data[bi + bit // 8]
+        return (b >> 4) if bit % 8 == 0 else (b & 15)
 
-    # splice: replace everything between the colon's comment marker and the
-    # closing of glyph_bitmap[]
-    marker = text.rindex("/* U+003A \":\" */")
-    end = text.index("};", marker)
-    new = (
-        f'/* U+003A ":" */\n    {body}\n'
-    )
-    path.write_text(text[:marker] + new + text[end:])
-    print(f"{path.name}: colon -> two single dots "
-          f"(box {box_w}x{box_h}, dot {dot_d:.1f}px, {len(rows)} rows)")
+    # measure the cluster from the top arm (row 0): pitch = blob start,
+    # dot = blob width — the center dot of each plus sits at (pitch, pitch)
+    row0 = [px(0, x) for x in range(bw)]
+    xs = [x for x, v in enumerate(row0) if v > 7]
+    if not xs:
+        sys.exit(f"{path.name}: colon row 0 empty — already patched or unexpected glyph")
+    pitch, dot = xs[0], xs[-1] - xs[0] + 1
+    if bw != 2 * pitch + dot:
+        sys.exit(f"{path.name}: geometry mismatch (bw {bw}, pitch {pitch}, dot {dot})")
+
+    # rebuild: zeros + one dot per period at the cluster centers
+    nbits = bw * bh * 4
+    new = bytearray((nbits + 7) // 8)
+    def set_px(y, x):
+        bit = (y * bw + x) * 4
+        if bit % 8 == 0:
+            new[bit // 8] |= 0xF0
+        else:
+            new[bit // 8] |= 0x0F
+    for y0 in (pitch, bh - pitch - dot):
+        for y in range(y0, y0 + dot):
+            for x in range(pitch, pitch + dot):
+                set_px(y, x)
+
+    body_bytes = ", ".join(f"0x{b:x}" for b in new)
+    lines, line = [], []
+    for tok in body_bytes.split(", "):
+        line.append(tok)
+        if len(line) == 16:
+            lines.append(", ".join(line)); line = []
+    if line:
+        lines.append(", ".join(line))
+    body = ",\n    ".join(lines)
+
+    marker = text.rindex('/* U+003A ":" */')
+    patched = text[:marker] + f'/* U+003A ":" */\n    {body}\n' + text[close:]
+    path.write_text(patched)
+    print(f"{path.name}: colon -> two {dot}x{dot} dots at pitch {pitch} "
+          f"(box {bw}x{bh}, {len(new)} bytes)")
 
 
 if __name__ == "__main__":
