@@ -30,6 +30,7 @@ Nearly all other GPIOs consumed by the 16-bit RGB bus. ST7701S: RGB parallel + 9
 5. Colors only via `src/palette.h` tokens (OKLCH-derived). No inline color literals anywhere else.
 6. Animation/transition durations only via `src/timing.h`. No ad-hoc millisecond constants in UI code.
 7. **Read the full compiler warning output, never just the tail.** A missing `return` in a `bool` function compiled with `-Wall` only (warning scrolled past unseen) → UB at `-Ofast` → `IllegalInstruction` crash loop on device. `-Werror=return-type` now in platformio.ini so it can't recur silently. (Cost a debugging round 2026-07-25.)
+8. **lv_font_conv glyph bitmaps are continuous 4bpp bitstreams, and its hex is minimal-width.** Rows are NOT byte-aligned; `0x0` single-digit bytes break `{2}`-digit regexes. Patching a glyph with byte-aligned rows renders garbage. Decode/encode as a bitstream (`tools/patch_doto_colon.py` is the reference); always verify by decoding the patched bitmap before flashing. (Cost a debugging round + one bad flash 2026-07-25.)
 
 ## Versions (exact pins — update only deliberately)
 
