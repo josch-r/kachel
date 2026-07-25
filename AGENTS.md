@@ -29,6 +29,7 @@ Nearly all other GPIOs consumed by the 16-bit RGB bus. ST7701S: RGB parallel + 9
 4. **GT911 self-reports a bogus 1085×600 matrix — never trust it.** Raw coordinates are native 480×480; esp32-smartdisplay's auto "coordinate adjustment" compresses x to ≤212 / y to ≤384. `fix_gt911_scaling()` in main.cpp detaches `th->config.process_coordinates` after `smartdisplay_init()`. Symptom if it regresses: right/bottom screen half untouchable. (Cost a debugging round 2026-07-24.)
 5. Colors only via `src/palette.h` tokens (OKLCH-derived). No inline color literals anywhere else.
 6. Animation/transition durations only via `src/timing.h`. No ad-hoc millisecond constants in UI code.
+7. **Read the full compiler warning output, never just the tail.** A missing `return` in a `bool` function compiled with `-Wall` only (warning scrolled past unseen) → UB at `-Ofast` → `IllegalInstruction` crash loop on device. `-Werror=return-type` now in platformio.ini so it can't recur silently. (Cost a debugging round 2026-07-25.)
 
 ## Versions (exact pins — update only deliberately)
 

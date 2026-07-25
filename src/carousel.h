@@ -22,5 +22,5 @@ void carousel_return_home(bool animated);
 // True while the ambient face tile is the active one.
 bool carousel_is_home();
 
-// Tile object for a layer (for M2 debug view overlays).
+// Tile object for a layer (layer modules attach their content here).
 lv_obj_t *carousel_tile(kachel_layer layer);

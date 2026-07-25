@@ -74,6 +74,7 @@ int state_events(kachel_event *out);
 
 // PM2.5 history ring (24 h, 5-min samples; PSRAM; resets on reboot — §10).
 // Call tick ~1 Hz from the UI thread; it samples last-known pm25 on schedule.
-void state_history_tick();
+// Returns true when a sample was appended (the chart's redraw trigger).
+bool state_history_tick();
 // Copies samples oldest-first into out (max n); returns count. -1 = no data.
 int state_history(int16_t *out, int n);

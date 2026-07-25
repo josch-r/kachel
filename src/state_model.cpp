@@ -182,14 +182,14 @@ static int history_start, history_count;
 static uint32_t last_sample_ms;
 static bool ever_sampled;
 
-void state_history_tick()
+bool state_history_tick()
 {
     kachel_air a = state_air();
     if (!a.valid)
-        return;
+        return false;
     uint32_t now = millis();
     if (ever_sampled && now - last_sample_ms < KACHEL_PM25_SAMPLE_S * 1000UL)
-        return;
+        return false;
     if (history_ring == nullptr)
     {
         history_ring = (int16_t *)heap_caps_malloc(
@@ -197,7 +197,7 @@ void state_history_tick()
         if (history_ring == nullptr) // no PSRAM? tiny buffer, heap is fine
             history_ring = (int16_t *)malloc(KACHEL_PM25_HISTORY_N * sizeof(int16_t));
         if (history_ring == nullptr)
-            return;
+            return false;
     }
     last_sample_ms = now;
     ever_sampled = true;
@@ -207,6 +207,7 @@ void state_history_tick()
         history_count++;
     else
         history_start = (history_start + 1) % KACHEL_PM25_HISTORY_N;
+    return true;
 }
 
 int state_history(int16_t *out, int n)

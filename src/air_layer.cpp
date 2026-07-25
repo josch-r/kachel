@@ -22,7 +22,6 @@ static int32_t chart_vals[KACHEL_PM25_HISTORY_N];
 static int shown_pm25 = -2;
 static int shown_filter = -2;
 static int shown_fan = -1;
-static int shown_samples = -1;
 
 static void fan_pressed(lv_event_t *e)
 {
@@ -31,7 +30,7 @@ static void fan_pressed(lv_event_t *e)
 
 static void refresh(lv_timer_t *)
 {
-    state_history_tick();
+    bool sampled = state_history_tick();
     kachel_air a = state_air();
 
     int pm25 = a.valid ? a.pm25 : -1;
@@ -73,11 +72,12 @@ static void refresh(lv_timer_t *)
         }
     }
 
-    static int16_t samples[KACHEL_PM25_HISTORY_N];
-    int n = state_history(samples, KACHEL_PM25_HISTORY_N);
-    if (n != shown_samples || (n > 0 && chart_vals[KACHEL_PM25_HISTORY_N - 1] != samples[n - 1]))
+    // rebuild only when a sample landed — all appends run through this tick,
+    // so equal consecutive values still shift the window (reviewer blocker)
+    if (sampled)
     {
-        shown_samples = n;
+        static int16_t samples[KACHEL_PM25_HISTORY_N];
+        int n = state_history(samples, KACHEL_PM25_HISTORY_N);
         int32_t peak = 40; // floor keeps the good-air trace low and quiet
         for (int i = 0; i < n; i++)
             if (samples[i] > peak)
@@ -85,7 +85,7 @@ static void refresh(lv_timer_t *)
         // right-aligned: newest sample at the right edge, gaps stay blank
         for (int i = 0; i < KACHEL_PM25_HISTORY_N; i++)
         {
-            int src = i - (KACHEL_PM25_HISTORY_N - (n < 0 ? 0 : n));
+            int src = i - (KACHEL_PM25_HISTORY_N - n);
             chart_vals[i] = src >= 0 ? samples[src] : LV_CHART_POINT_NONE;
         }
         lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, peak + 5);

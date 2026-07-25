@@ -26,6 +26,14 @@ static void set_stale(lv_obj_t *dot, bool stale)
         lv_obj_add_flag(dot, LV_OBJ_FLAG_HIDDEN);
 }
 
+// lv_label_set_text always reallocs + invalidates; skip unchanged text so the
+// 1 Hz poll never redraws a static layer
+static void set_text_if_changed(lv_obj_t *label, const char *text)
+{
+    if (strcmp(lv_label_get_text(label), text) != 0)
+        lv_label_set_text(label, text);
+}
+
 static void refresh(lv_timer_t *)
 {
     kachel_event events[KACHEL_EVENTS_MAX];
@@ -38,7 +46,7 @@ static void refresh(lv_timer_t *)
     {
         if (i >= n)
         {
-            lv_label_set_text(event_labels[i], "");
+            set_text_if_changed(event_labels[i], "");
             continue;
         }
         struct tm t;
@@ -50,18 +58,20 @@ static void refresh(lv_timer_t *)
         else
             snprintf(line, sizeof(line), "%s %02d:%02d · %s", weekdays[t.tm_wday],
                      t.tm_hour, t.tm_min, events[i].title);
-        lv_label_set_text(event_labels[i], line);
+        set_text_if_changed(event_labels[i], line);
     }
 
     kachel_bring b = state_bring();
+    char header[32];
     if (!b.valid)
-        lv_label_set_text(bring_header, "Bring!");
+        snprintf(header, sizeof(header), "Bring!");
     else if (b.count == 0)
-        lv_label_set_text(bring_header, "Bring! · leer");
+        snprintf(header, sizeof(header), "Bring! · leer");
     else
-        lv_label_set_text_fmt(bring_header, "Bring! · %d", b.count);
+        snprintf(header, sizeof(header), "Bring! · %d", b.count);
+    set_text_if_changed(bring_header, header);
     for (int i = 0; i < KACHEL_BRING_ITEMS_MAX; i++)
-        lv_label_set_text(bring_items[i], (b.valid && i < b.item_count) ? b.items[i] : "");
+        set_text_if_changed(bring_items[i], (b.valid && i < b.item_count) ? b.items[i] : "");
 
     set_stale(cal_stale_dot, mqtt_state_stale(KACHEL_TOPIC_CALENDAR));
     set_stale(bring_stale_dot, mqtt_state_stale(KACHEL_TOPIC_BRING));
