@@ -87,6 +87,7 @@ void state_model_ingest(int topic, const char *payload)
         weather.temp = doc["temp"] | 0.0f;
         weather.condition = parse_condition(doc["condition"] | (const char *)nullptr);
         weather.precip_12h_mm = doc["precip_12h_mm"] | 0.0f;
+        weather.precip_start_h = doc["precip_start_h"] | -1;
         int sr = hhmm_to_min(doc["sunrise"] | (const char *)nullptr);
         int ss = hhmm_to_min(doc["sunset"] | (const char *)nullptr);
         if (sr >= 0)

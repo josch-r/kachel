@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#define KACHEL_FW_VERSION "0.5.0-m5"
+#define KACHEL_FW_VERSION "0.6.0-face2"
 
 // --- schedule (SPEC §5.12; all times configurable here) ---
 // Valid ranges (M5 audit): the schedule state machine assumes the order
@@ -26,6 +26,11 @@ constexpr uint32_t KACHEL_IDLE_RETURN_MS = 20000; // 20 s, spec range 10-30 s
 // --- PM2.5 history ring (§10 decision: device-side, resets on reboot) ---
 constexpr uint32_t KACHEL_PM25_SAMPLE_S = 300; // one sample per 5 min
 constexpr int KACHEL_PM25_HISTORY_N = 288;     // 24 h window
+
+// --- daypart engine (DESIGN_FACE v2 §H) ---
+constexpr int KACHEL_RUSH_START_MIN = 6 * 60; // weekday rush window
+constexpr int KACHEL_RUSH_END_MIN = 9 * 60;
+constexpr int KACHEL_LEAVE_LEAD_MIN = 15; // leave-by = event start - lead
 
 // --- test mode ---
 // 1 = compress 24 h into 2 min for the dim-cycle evidence video; 0 = real time

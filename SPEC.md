@@ -105,7 +105,7 @@ Design-phase freedom within these constraints:
 | Topic | Dir | Payload (JSON) | Cadence |
 |---|---|---|---|
 | `kachel/state/air` | →device | `{pm25, aqi_level, fan, mode, filter_pct}` | on change |
-| `kachel/state/weather` | →device | `{temp, condition, precip_12h_mm, sunrise, sunset}` | 15 min |
+| `kachel/state/weather` | →device | `{temp, condition, precip_12h_mm, precip_start_h, sunrise, sunset}` | 15 min |
 | `kachel/state/calendar` | →device | `{next:[{title, start, cal}]}` (max 3) | 5 min |
 | `kachel/state/bring` | →device | `{count, items:[top 5]}` | 5 min |
 | `kachel/state/timer` | →device | `{label, ends_at}` or `{}` | on change |
@@ -173,6 +173,7 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | Scene slots 1+2 (M4, 2026-07-25) | Josch: slots 1+2 = "Alles an" / "Alles aus" (fixed semantics, buttons labeled); 3+4 stay stubs (gemütlich/fokus) until co-design session. HA gotcha: entity registry pins entity_id to config-id (unique_id) — rename never re-slugs; scenes recreated under fresh config ids kachel_s1–s4 |
 | Layer numeral scoping (M4, 2026-07-25) | §5.2's ≥120 px primary-datum rule scopes to the resting face (2–3 m periphery). Control layers are deliberate arm's-length surfaces — Air layer PM2.5 numeral stays 72 px. Approved by Josch |
 | M4 accepted (2026-07-25) | Control layers live on fw 0.4.0-m4: lights 2×2 (slots 1+2 alles an/aus), air 5-segment fan control incl. auto mode, 24 h PM2.5 chart, household calendar + Bring!. Reviewer ACCEPT (one REJECT round: chart-freeze blocker fixed); interaction-loop video verified frame-by-frame. Co-resident usability pass deferred (not present) — rolls into M5 checklist |
+| Face v2 "Three Strata" (2026-07-25) | Josch-approved redesign (research council + colorist/hardware-critic experts): field/mark/slot strata, daypart engine, absolute weather band + veil, droplets + temp/precip text line, Doto+Departure Mono typography (NDot legally unusable), palette per docs/DESIGN_PALETTE_V2.md. Contract: weather gains `precip_start_h` (first forecast hour with precip >0.1 mm, −1 none) for the text line. v1 face + Inter Tight 176 retire |
 
 ## 11. Open items & roadmap
 

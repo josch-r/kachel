@@ -31,6 +31,7 @@ struct kachel_weather
     float temp = 0;
     kachel_condition condition = KACHEL_COND_UNKNOWN;
     float precip_12h_mm = 0;
+    int precip_start_h = -1;   // local hour precip begins; -1 = none/unknown
     int sunrise_min = 6 * 60;  // minutes of day; defaults keep face sane pre-data
     int sunset_min = 21 * 60;
     bool valid = false;

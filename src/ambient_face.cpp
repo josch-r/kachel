@@ -1,5 +1,8 @@
-// The ambient face (SPEC §6) — implementation of docs/DESIGN_FACE.md
-// (design pass 2026-07-24). All numeric tokens trace to that document.
+// The ambient face v2 "Three Strata" — implementation of docs/DESIGN_FACE.md
+// and docs/DESIGN_PALETTE_V2.md (design pass 2026-07-25, signed off).
+// Strata: FIELD (phase + weather band/veil + air), MARK (Doto clock, anchor
+// eternal), SLOT (one amber next-thing band), plus LINE (temp + precip) and
+// DROPLETS (precip <=12 h). All numeric tokens trace to those documents.
 #include "ambient_face.h"
 
 #include <Arduino.h>
@@ -12,79 +15,72 @@
 #include "time_sync.h"
 #include "timing.h"
 
-LV_FONT_DECLARE(font_clock_176);
-LV_FONT_DECLARE(font_timer_72);
-LV_FONT_DECLARE(font_guest_22);
+LV_FONT_DECLARE(font_clock_100);
+LV_FONT_DECLARE(font_timer_44);
+LV_FONT_DECLARE(font_text_22);
 
 // ---------------------------------------------------------------- params
 
-struct grad_params
+struct phase_params
 {
-    oklch stops[3]; // top / horizon(65%) / bottom
+    oklch stops[3]; // top y=0 / horizon y=312 / bottom y=480
     oklch clock;
+    oklch line; // secondary text line color
 };
 
-// Phase tables (DESIGN_FACE.md §A/§D). Pre-dawn == evening by design.
-static const grad_params PH_EVENING = {
-    {{0.11f, 0.015f, 75}, {0.15f, 0.035f, 62}, {0.08f, 0.010f, 75}},
-    {0.68f, 0.045f, 70}};
-static const grad_params PH_DAWN_PEAK = {
-    {{0.17f, 0.025f, 250}, {0.26f, 0.090f, 45}, {0.10f, 0.015f, 75}},
-    {0.82f, 0.028f, 80}};
-static const grad_params PH_DAY = {
-    {{0.28f, 0.030f, 240}, {0.33f, 0.020f, 85}, {0.15f, 0.015f, 75}},
-    {0.90f, 0.020f, 85}};
-static const grad_params PH_DUSK_PEAK = {
-    {{0.14f, 0.022f, 255}, {0.24f, 0.095f, 58}, {0.09f, 0.012f, 70}},
-    {0.78f, 0.035f, 72}};
+// PALETTE_V2 §1/§4. Law: light lives at the horizon, top L <= 0.15 always.
+static const phase_params PH_HUSH = { // pre-dawn: total slate
+    {{0.10f, 0.020f, 250}, {0.16f, 0.032f, 248}, {0.09f, 0.012f, 250}},
+    {0.72f, 0.030f, 85}, {0.58f, 0.022f, 78}};
+static const phase_params PH_RIFT = { // sunrise: cool lid, rose seam
+    {{0.14f, 0.030f, 250}, {0.30f, 0.100f, 45}, {0.10f, 0.018f, 75}},
+    {0.84f, 0.026f, 80}, {0.64f, 0.020f, 80}};
+static const phase_params PH_VAULT = { // day: blue vault, bone seam
+    {{0.15f, 0.042f, 243}, {0.35f, 0.024f, 90}, {0.13f, 0.016f, 80}},
+    {0.90f, 0.018f, 85}, {0.70f, 0.018f, 85}};
+static const phase_params PH_EMBER = { // sunset: darker lid, warmer seam
+    {{0.11f, 0.028f, 255}, {0.26f, 0.095f, 57}, {0.09f, 0.014f, 75}},
+    {0.80f, 0.034f, 78}, {0.64f, 0.020f, 80}};
+static const phase_params PH_HEARTH = { // evening: total bone, lamplight
+    {{0.09f, 0.016f, 75}, {0.17f, 0.035f, 75}, {0.09f, 0.012f, 78}},
+    {0.68f, 0.045f, 75}, {0.58f, 0.022f, 78}};
 
-static grad_params blend_params(const grad_params &a, const grad_params &b, float t)
+// Weather band + veil (PALETTE_V2 §2): absolute constants, never phase-tinted
+static const oklch BAND_PARTLY = {0.22f, 0.020f, 244};
+static const oklch BAND_OVERCAST = {0.29f, 0.012f, 250};
+static const oklch VEIL = {0.19f, 0.026f, 247};
+
+// Slot ambers (PALETTE_V2 §4)
+static const oklch SLOT_TEXT = {0.74f, 0.085f, 70};
+static const oklch SLOT_FILL = {0.17f, 0.030f, 70};
+static const oklch SLOT_TEXT_URGENT = {0.79f, 0.110f, 70};
+static const oklch SLOT_FILL_URGENT = {0.30f, 0.085f, 70};
+static const oklch DROPLET = {0.80f, 0.020f, 80};
+
+// The full continuously-slewed face state (everything the renderer needs)
+struct face_params
 {
-    grad_params r;
+    oklch stops[3];
+    oklch clock;
+    oklch line;
+    float band_on;    // 0..1 sky band presence
+    float band_flat;  // 0 = partly (graded), 1 = overcast (flat lid)
+    oklch band_color; // post-air band value
+    float veil_frac;  // 0..1 of the y160..y312 span
+    oklch veil_color; // post-air veil value
+};
+
+static phase_params blend_phase(const phase_params &a, const phase_params &b, float t)
+{
+    phase_params r;
     for (int i = 0; i < 3; i++)
         r.stops[i] = oklab_lerp(a.stops[i], b.stops[i], t);
     r.clock = oklab_lerp(a.clock, b.clock, t);
+    r.line = oklab_lerp(a.line, b.line, t);
     return r;
 }
 
-// Weather modifiers (DESIGN_FACE.md §B): ΔL per stop, chroma multiplier,
-// then condition-specific hue treatment.
-static grad_params apply_condition(grad_params p, const kachel_weather &w,
-                                   kachel_condition cond)
-{
-    struct mod
-    {
-        float dl[3];
-        float cmul;
-    };
-    mod m = {{0, 0, 0}, 1.0f};
-    switch (cond)
-    {
-    case KACHEL_COND_PARTLYCLOUDY: m = {{0, -0.01f, 0}, 0.75f}; break;
-    case KACHEL_COND_CLOUDY:       m = {{0.02f, -0.04f, 0.01f}, 0.45f}; break;
-    case KACHEL_COND_RAIN:         m = {{-0.02f, -0.05f, -0.02f}, 0.55f}; break;
-    case KACHEL_COND_FOG:          m = {{0.04f, -0.02f, 0.05f}, 0.30f}; break;
-    case KACHEL_COND_SNOW:         m = {{0.02f, 0.01f, 0.06f}, 0.40f}; break;
-    default: break;
-    }
-    for (int i = 0; i < 3; i++)
-    {
-        p.stops[i].L += m.dl[i];
-        p.stops[i].C *= m.cmul;
-    }
-    if (cond == KACHEL_COND_RAIN)
-        for (int i = 0; i < 3; i++)
-        {
-            oklch anchor = {p.stops[i].L, 0.030f, 245};
-            p.stops[i] = oklab_lerp(p.stops[i], anchor, 0.35f);
-        }
-    if (cond == KACHEL_COND_SNOW)
-        p.stops[2].H = 85;
-    return p;
-}
-
-// Air-quality shift (DESIGN_FACE.md §C): OKLab blend toward the dust-violet
-// anchor, L untouched. Hysteresis so the field never flickers between bands.
+// --- air quality (PALETTE_V2 §3), hysteresis unchanged from v1 ---
 static int air_band; // 0 good, 1 elevated, 2 poor
 static void update_air_band(int pm25)
 {
@@ -106,97 +102,234 @@ static void update_air_band(int pm25)
     }
 }
 
-static grad_params apply_air(grad_params p)
+// Apply the dust-violet blend to one color. Rose-guard (§C): stops whose
+// native hue sits in the sun family [30,70] with C > 0.05 are skipped so the
+// blend can never pass through forbidden red at dawn/dusk.
+static oklch air_shift(oklch c, int band, float cfloor)
 {
-    if (air_band == 0)
-        return p;
-    float k = air_band == 2 ? 0.85f : 0.40f;
-    float cfloor_h = air_band == 2 ? 0.075f : 0.035f;
-    float cfloor_tb = air_band == 2 ? 0.060f : 0.035f;
-    for (int i = 0; i < 3; i++)
-    {
-        float keepL = p.stops[i].L;
-        oklch anchor = {keepL, 0.080f, 330};
-        p.stops[i] = oklab_lerp(p.stops[i], anchor, k);
-        p.stops[i].L = keepL;
-        float floor_c = i == 1 ? cfloor_h : cfloor_tb;
-        if (p.stops[i].C < floor_c)
-            p.stops[i].C = floor_c;
-    }
-    return p;
+    if (band == 0)
+        return c;
+    if (c.H >= 30 && c.H <= 70 && c.C > 0.05f)
+        return c; // rose-guard
+    float keepL = c.L;
+    if (band == 2)
+        c.C *= 0.5f; // pre-drain: violet arrives pure, not mixed to mud
+    float k = band == 2 ? 0.80f : 0.30f;
+    oklch anchor = {keepL, band == 2 ? 0.090f : 0.070f, 330};
+    c = oklab_lerp(c, anchor, k);
+    c.L = keepL;
+    if (c.C < cfloor)
+        c.C = cfloor;
+    return c;
 }
 
-static grad_params params_for_now()
+// --- daypart engine (DESIGN_FACE §H) ---
+enum daypart
+{
+    DP_RUSH,
+    DP_DAY,
+    DP_EVENING,
+    DP_NIGHT, // display.cpp owns the screen; face keeps rendering beneath
+};
+
+static daypart daypart_now(int minute, int sunset_min)
+{
+    if (minute < 0)
+        return DP_DAY; // fail calm
+    if (minute >= KACHEL_NIGHT_START_MIN || minute < KACHEL_DAY_START_MIN)
+        return DP_NIGHT;
+    time_t now = time(nullptr);
+    struct tm lt;
+    localtime_r(&now, &lt);
+    bool weekday = lt.tm_wday >= 1 && lt.tm_wday <= 5;
+    if (weekday && minute >= KACHEL_RUSH_START_MIN && minute < KACHEL_RUSH_END_MIN)
+        return DP_RUSH;
+    if (minute >= sunset_min - 40)
+        return DP_EVENING;
+    return DP_DAY;
+}
+
+// --- cooking suppression (§C): while a timer runs (+30 min), air escalation
+// is capped at elevated — frying spikes are expected, not alerts.
+static time_t last_timer_active_at;
+
+static face_params target_for_now()
 {
     auto w = state_weather();
     int minute = time_sync_minute_of_day();
     if (minute < 0)
-        minute = 12 * 60; // fail calm: no clock -> neutral day field
-
+        minute = 12 * 60;
     const int sr = w.sunrise_min, ss = w.sunset_min;
-    grad_params p;
+
+    phase_params p;
     if (minute < sr - 40)
-        p = PH_EVENING; // pre-dawn shares evening stops (§5.13)
+        p = PH_HUSH;
     else if (minute < sr)
-        p = blend_params(PH_EVENING, PH_DAWN_PEAK, (float)(minute - (sr - 40)) / 40.0f);
+        p = blend_phase(PH_HUSH, PH_RIFT, (float)(minute - (sr - 40)) / 40.0f);
     else if (minute < sr + 40)
-        p = blend_params(PH_DAWN_PEAK, PH_DAY, (float)(minute - sr) / 40.0f);
+        p = blend_phase(PH_RIFT, PH_VAULT, (float)(minute - sr) / 40.0f);
     else if (minute < ss - 40)
-        p = PH_DAY;
+        p = PH_VAULT;
     else if (minute < ss)
-        p = blend_params(PH_DAY, PH_DUSK_PEAK, (float)(minute - (ss - 40)) / 40.0f);
+        p = blend_phase(PH_VAULT, PH_EMBER, (float)(minute - (ss - 40)) / 40.0f);
     else if (minute < ss + 40)
-        p = blend_params(PH_DUSK_PEAK, PH_EVENING, (float)(minute - ss) / 40.0f);
+        p = blend_phase(PH_EMBER, PH_HEARTH, (float)(minute - ss) / 40.0f);
     else
-        p = PH_EVENING;
+        p = PH_HEARTH;
 
-    grad_params modified = apply_condition(p, w, w.condition);
-    // rain-later (§B): sky heavies preemptively
-    if (w.condition != KACHEL_COND_RAIN && w.precip_12h_mm > 0.5f)
+    face_params f = {};
+    for (int i = 0; i < 3; i++)
+        f.stops[i] = p.stops[i];
+    f.clock = p.clock;
+    f.line = p.line;
+
+    // --- weather band + veil (absolute encoding, §B) ---
+    int band = 0; // 0 none, 1 partly, 2 overcast
+    switch (w.condition)
     {
-        grad_params rainy = apply_condition(p, w, KACHEL_COND_RAIN);
-        for (int i = 0; i < 3; i++)
-            modified.stops[i] = oklab_lerp(modified.stops[i], rainy.stops[i], 0.60f);
+    case KACHEL_COND_PARTLYCLOUDY: band = 1; break;
+    case KACHEL_COND_CLOUDY:
+    case KACHEL_COND_FOG:
+    case KACHEL_COND_RAIN:
+    case KACHEL_COND_SNOW: band = 2; break;
+    default: break;
     }
-    update_air_band(state_air().pm25);
-    modified = apply_air(modified);
+    float frac = 0;
+    if (w.precip_12h_mm > 8.0f) frac = 1.0f;
+    else if (w.precip_12h_mm > 2.0f) frac = 2.0f / 3.0f;
+    else if (w.precip_12h_mm > 0.5f) frac = 1.0f / 3.0f;
+    if ((w.condition == KACHEL_COND_RAIN || w.condition == KACHEL_COND_SNOW) && frac == 0)
+        frac = 1.0f / 3.0f; // precipitating now trumps a dry forecast sum
+    if (frac > 0 && band == 0)
+        band = 1; // veil implies band >= partly
 
-    for (auto &s : modified.stops)
+    f.band_on = band ? 1.0f : 0.0f;
+    f.band_flat = band == 2 ? 1.0f : 0.0f;
+    f.band_color = band == 2 ? BAND_OVERCAST : BAND_PARTLY;
+    f.veil_frac = frac;
+    f.veil_color = VEIL;
+
+    // warmth bridge (§B): overcast mutes but never erases the seam identity
+    if (band == 2)
     {
-        s.L = s.L < 0.05f ? 0.05f : (s.L > 0.35f ? 0.35f : s.L);
+        f.stops[1].C *= 0.75f;
+        float floor_c = 0;
+        if (f.stops[1].H >= 40 && f.stops[1].H <= 60) floor_c = 0.055f; // Rift/Ember
+        else if (f.stops[1].H >= 80) floor_c = 0.018f;                  // Vault
+        if (f.stops[1].C < floor_c)
+            f.stops[1].C = floor_c;
+    }
+    // snow ground cue (§B, kept from v1)
+    if (w.condition == KACHEL_COND_SNOW)
+    {
+        f.stops[2].H = 85;
+        f.stops[2].L += 0.06f;
+    }
+
+    // --- air shift, cooking-capped (§C) ---
+    update_air_band(state_air().pm25);
+    int eff_band = air_band;
+    time_t now = time(nullptr);
+    if (state_timer().active)
+        last_timer_active_at = now;
+    if (eff_band == 2 && last_timer_active_at != 0 &&
+        now - last_timer_active_at < 30 * 60)
+        eff_band = 1;
+    for (int i = 0; i < 3; i++)
+        f.stops[i] = air_shift(f.stops[i], eff_band,
+                               eff_band == 2 ? (i == 1 ? 0.080f : 0.060f) : 0.030f);
+    f.band_color = air_shift(f.band_color, eff_band, eff_band == 2 ? 0.060f : 0.030f);
+    f.veil_color = air_shift(f.veil_color, eff_band, eff_band == 2 ? 0.060f : 0.030f);
+
+    // clamps: field floor L 0.09 (below = true RGB565 black, PALETTE_V2), C cap
+    for (auto &s : f.stops)
+    {
+        s.L = s.L < 0.09f ? 0.09f : (s.L > 0.35f ? 0.35f : s.L);
         s.C = s.C > 0.10f ? 0.10f : s.C;
     }
-    return modified;
+    return f;
 }
 
 // ---------------------------------------------------------------- renderer
 
 static constexpr int W = 480, H = 480;
-static constexpr int HORIZON_Y = 312; // 65% (DESIGN_FACE.md §A)
+static constexpr int HORIZON_Y = 312;
+static constexpr int BAND_Y = 160;
 static lv_obj_t *canvas;
 static lv_color16_t *canvas_buf;
-static grad_params current, target;
+static face_params current, target;
+static oklch row_colors[H];
 
-// 8x8 Bayer matrix — ±1 LSB ordered dither breaks RGB565 banding (§6)
+// 8x8 Bayer matrix — ±1 LSB ordered dither, screen-anchored (§A)
 static const uint8_t bayer8[8][8] = {
     {0, 32, 8, 40, 2, 34, 10, 42}, {48, 16, 56, 24, 50, 18, 58, 26},
     {12, 44, 4, 36, 14, 46, 6, 38}, {60, 28, 52, 20, 62, 30, 54, 22},
     {3, 35, 11, 43, 1, 33, 9, 41}, {51, 19, 59, 27, 49, 17, 57, 25},
     {15, 47, 7, 39, 13, 45, 5, 37}, {63, 31, 55, 23, 61, 29, 53, 21}};
 
-static void render_gradient(const grad_params &p, float breath_dl)
+// linear feather: replace rows in [center-half, center+half] with the lerp
+// between the window's edge colors (the §B feather rule)
+static void feather_rows(int center, int half)
 {
-    grad_params b = p;
-    b.stops[1].L += breath_dl;
+    int a = center - half, b = center + half;
+    if (a < 0) a = 0;
+    if (b > H - 1) b = H - 1;
+    if (b <= a) return;
+    oklch ca = row_colors[a], cb = row_colors[b];
+    for (int y = a; y <= b; y++)
+        row_colors[y] = oklab_lerp(ca, cb, (float)(y - a) / (b - a));
+}
+
+static void compute_rows(const face_params &f, float breath_dl, bool fog)
+{
+    oklch horizon = f.stops[1];
+    horizon.L += breath_dl;
+
+    // base phase gradient
     for (int y = 0; y < H; y++)
     {
-        oklch c;
         if (y < HORIZON_Y)
-            c = oklab_lerp(b.stops[0], b.stops[1], (float)y / HORIZON_Y);
+            row_colors[y] = oklab_lerp(f.stops[0], horizon, (float)y / HORIZON_Y);
         else
-            c = oklab_lerp(b.stops[1], b.stops[2], (float)(y - HORIZON_Y) / (H - HORIZON_Y));
-        rgbf f = oklch_to_srgb(c);
-        float r31 = f.r * 31.0f, g63 = f.g * 63.0f, b31 = f.b * 31.0f;
+            row_colors[y] = oklab_lerp(horizon, f.stops[2],
+                                       (float)(y - HORIZON_Y) / (H - HORIZON_Y));
+    }
+
+    if (f.band_on > 0.01f)
+    {
+        int veil_y = BAND_Y + (int)(f.veil_frac * (HORIZON_Y - BAND_Y));
+        int edge_y = f.veil_frac > 0.01f ? veil_y : BAND_Y;
+        oklch edge_color = f.veil_frac > 0.01f ? f.veil_color : f.band_color;
+        for (int y = 0; y < HORIZON_Y; y++)
+        {
+            oklch sky;
+            if (y < BAND_Y)
+            {
+                sky = f.band_color;
+                // partly keeps a ±0.015 internal grade; overcast is dead flat
+                sky.L += (1.0f - f.band_flat) * 0.015f * (1.0f - 2.0f * (float)y / BAND_Y);
+            }
+            else if (y < edge_y)
+                sky = f.veil_color;
+            else if (edge_y < HORIZON_Y)
+                sky = oklab_lerp(edge_color, horizon,
+                                 (float)(y - edge_y) / (HORIZON_Y - edge_y));
+            else
+                sky = edge_color; // full veil: the seam is erased
+            row_colors[y] = oklab_lerp(row_colors[y], sky, f.band_on);
+        }
+        // band bottom edge: 24 px partly / 12 px overcast feather
+        feather_rows(BAND_Y, (int)(12 - 6 * f.band_flat));
+        if (f.veil_frac > 0.01f && veil_y < HORIZON_Y)
+            feather_rows(veil_y, 14); // veil terminator, 28 px
+    }
+    if (fog)
+        feather_rows(HORIZON_Y, 96); // fog diffuses the seam (§B)
+
+    for (int y = 0; y < H; y++)
+    {
+        rgbf c = oklch_to_srgb(row_colors[y]);
+        float r31 = c.r * 31.0f, g63 = c.g * 63.0f, b31 = c.b * 31.0f;
         lv_color16_t *row = canvas_buf + y * W;
         for (int x = 0; x < W; x++)
         {
@@ -213,20 +346,23 @@ static void render_gradient(const grad_params &p, float breath_dl)
 // ---------------------------------------------------------------- elements
 
 static lv_obj_t *clock_label;
-static lv_obj_t *event_label;
-static lv_obj_t *timer_card;
-static lv_obj_t *timer_name_label;
-static lv_obj_t *timer_count_label;
+static lv_obj_t *line_label;
+static lv_obj_t *droplet_lines[3];
+static lv_obj_t *slot_band;
+static lv_obj_t *slot_label;
+static lv_obj_t *slot_count_label;
+static lv_point_precise_t droplet_pts[3][2];
 
 enum timer_ui_state
 {
     TIMER_HIDDEN,
     TIMER_RUNNING,
-    TIMER_NOTABLE, // T-60s color accent active
-    TIMER_DONE,    // urgent fired; static until tap (60 s self-decay fallback)
+    TIMER_NOTABLE,
+    TIMER_DONE,
 };
 static timer_ui_state timer_ui = TIMER_HIDDEN;
 static uint32_t timer_done_ms;
+static bool slot_shown;
 
 static lv_color_t oklch_to_lv(const oklch &c)
 {
@@ -250,117 +386,197 @@ static void fade_to(lv_obj_t *obj, int32_t from, int32_t to, uint32_t dur, bool 
     lv_anim_start(&a);
 }
 
-// The one urgent beat (DESIGN_FACE.md §E): fill rises to amber peak in
-// 350 ms, decays to the static done-state over 1600 ms. Fires once.
-static const oklch PULSE_PEAK = {0.45f, 0.110f, 70};
-static const oklch PULSE_DONE = {0.17f, 0.040f, 70};
-static const oklch CARD_FILL = {0.20f, 0.015f, 75};
+static void slot_show(bool with_count)
+{
+    if (!slot_shown)
+    {
+        fade_to(slot_band, LV_OPA_TRANSP, LV_OPA_COVER, KACHEL_T_CARD_IN_MS, false);
+        slot_shown = true;
+    }
+    if (with_count)
+        lv_obj_remove_flag(slot_count_label, LV_OBJ_FLAG_HIDDEN);
+    else
+        lv_obj_add_flag(slot_count_label, LV_OBJ_FLAG_HIDDEN);
+}
 
+static void slot_hide()
+{
+    if (slot_shown)
+    {
+        fade_to(slot_band, LV_OPA_COVER, LV_OPA_TRANSP, KACHEL_T_CARD_OUT_MS, true);
+        slot_shown = false;
+    }
+}
+
+static void reset_slot_style()
+{
+    lv_obj_set_style_bg_color(slot_band, oklch_to_lv(SLOT_FILL), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(slot_band, 160, LV_PART_MAIN);
+    lv_obj_set_style_text_color(slot_label, oklch_to_lv(SLOT_TEXT), LV_PART_MAIN);
+    lv_obj_set_style_text_color(slot_count_label, oklch_to_lv(SLOT_TEXT), LV_PART_MAIN);
+}
+
+// The one urgent beat (§E): fill rises to the urgent amber in 350 ms, decays
+// back to the regular plinth over 1600 ms; text stays urgent until tap/decay.
 static void pulse_exec(void *obj, int32_t v)
 {
-    // v 0..350 rise, 350..1950 decay
     oklch c;
-    lv_opa_t opa;
     if (v <= (int32_t)KACHEL_T_PULSE_RISE_MS)
-    {
-        float t = (float)v / KACHEL_T_PULSE_RISE_MS;
-        c = oklab_lerp(CARD_FILL, PULSE_PEAK, t);
-        opa = 120 + (lv_opa_t)((216 - 120) * t);
-    }
+        c = oklab_lerp(SLOT_FILL, SLOT_FILL_URGENT, (float)v / KACHEL_T_PULSE_RISE_MS);
     else
-    {
-        float t = (float)(v - KACHEL_T_PULSE_RISE_MS) / KACHEL_T_PULSE_DECAY_MS;
-        c = oklab_lerp(PULSE_PEAK, PULSE_DONE, t);
-        opa = 216 - (lv_opa_t)((216 - 160) * t);
-    }
+        c = oklab_lerp(SLOT_FILL_URGENT, SLOT_FILL,
+                       (float)(v - KACHEL_T_PULSE_RISE_MS) / KACHEL_T_PULSE_DECAY_MS);
     lv_obj_set_style_bg_color((lv_obj_t *)obj, oklch_to_lv(c), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa((lv_obj_t *)obj, opa, LV_PART_MAIN);
 }
 
 static void urgent_pulse()
 {
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, timer_card);
+    lv_anim_set_var(&a, slot_band);
     lv_anim_set_values(&a, 0, KACHEL_T_PULSE_RISE_MS + KACHEL_T_PULSE_DECAY_MS);
     lv_anim_set_duration(&a, KACHEL_T_PULSE_RISE_MS + KACHEL_T_PULSE_DECAY_MS);
     lv_anim_set_exec_cb(&a, pulse_exec);
     lv_anim_start(&a);
-    lv_obj_set_style_border_color(timer_card, oklch_to_lv({0.45f, 0.080f, 70}), LV_PART_MAIN);
-    lv_obj_set_style_border_opa(timer_card, 90, LV_PART_MAIN);
-    lv_obj_set_style_text_color(timer_count_label, oklch_to_lv({0.72f, 0.085f, 70}), LV_PART_MAIN);
+    lv_obj_set_style_text_color(slot_count_label, oklch_to_lv(SLOT_TEXT_URGENT), LV_PART_MAIN);
+    lv_obj_set_style_text_color(slot_label, oklch_to_lv(SLOT_TEXT_URGENT), LV_PART_MAIN);
 }
 
-static void reset_card_style()
+// --- slot content (§E priority ladder). Returns true when slot occupied. ---
+static bool fill_slot_calendar(daypart dp)
 {
-    lv_obj_set_style_bg_color(timer_card, oklch_to_lv(CARD_FILL), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(timer_card, 120, LV_PART_MAIN);
-    lv_obj_set_style_border_color(timer_card, oklch_to_lv({0.35f, 0.020f, 75}), LV_PART_MAIN);
-    lv_obj_set_style_border_opa(timer_card, 60, LV_PART_MAIN);
-    lv_obj_set_style_text_color(timer_count_label, KACHEL_TEXT_PRIMARY, LV_PART_MAIN);
+    kachel_event events[KACHEL_EVENTS_MAX];
+    int n = state_events(events);
+    if (n <= 0)
+        return false;
+    time_t now = time(nullptr);
+    struct tm today, evt;
+    localtime_r(&now, &today);
+
+    for (int i = 0; i < n; i++)
+    {
+        if (!events[i].valid || events[i].start + 300 < now)
+            continue; // §6: leaves 5 min after start
+        localtime_r(&events[i].start, &evt);
+        bool is_today = evt.tm_yday == today.tm_yday && evt.tm_year == today.tm_year;
+
+        if (dp == DP_RUSH && is_today)
+        {
+            time_t leave = events[i].start - KACHEL_LEAVE_LEAD_MIN * 60;
+            struct tm lv_tm;
+            localtime_r(&leave, &lv_tm);
+            lv_label_set_text_fmt(slot_label, "%02d:%02d \xC2\xB7 %s \xE2\x80\x94 los um %02d:%02d",
+                                  evt.tm_hour, evt.tm_min, events[i].title,
+                                  lv_tm.tm_hour, lv_tm.tm_min);
+            return true;
+        }
+        if (dp == DP_DAY && is_today && events[i].start - now <= 2 * 3600)
+        {
+            lv_label_set_text_fmt(slot_label, "%02d:%02d \xC2\xB7 %s",
+                                  evt.tm_hour, evt.tm_min, events[i].title);
+            return true;
+        }
+        if (dp == DP_EVENING && !is_today)
+        {
+            lv_label_set_text_fmt(slot_label, "Morgen %02d:%02d \xC2\xB7 %s",
+                                  evt.tm_hour, evt.tm_min, events[i].title);
+            return true;
+        }
+    }
+    return false;
 }
 
 static void tick(lv_timer_t *)
 {
     auto const now_ms = millis();
+    auto w = state_weather();
+    int minute = time_sync_minute_of_day();
+    daypart dp = daypart_now(minute, w.sunset_min);
 
-    // --- gradient: slew toward target over the ambient beat, breathe at rest ---
-    target = params_for_now();
+    // --- field: slew toward target over the ambient beat, breathe at rest ---
+    target = target_for_now();
     float t = (float)KACHEL_T_FACE_TICK_MS / KACHEL_T_AMBIENT_MS;
     for (int i = 0; i < 3; i++)
         current.stops[i] = oklab_lerp(current.stops[i], target.stops[i], t);
     current.clock = oklab_lerp(current.clock, target.clock, t);
-    // breathing (§F): horizon L ±0.010, 6 cycles/min; §5.7 ceiling
+    current.line = oklab_lerp(current.line, target.line, t);
+    current.band_color = oklab_lerp(current.band_color, target.band_color, t);
+    current.veil_color = oklab_lerp(current.veil_color, target.veil_color, t);
+    current.band_on += (target.band_on - current.band_on) * t;
+    current.band_flat += (target.band_flat - current.band_flat) * t;
+    current.veil_frac += (target.veil_frac - current.veil_frac) * t;
+
     float breath = 0.010f * sinf((float)now_ms * 2.0f * (float)M_PI / KACHEL_T_BREATH_PERIOD_MS);
     if (timer_ui == TIMER_DONE)
-        breath = 0; // suspended during the done beat per design
-    render_gradient(current, breath);
-    lv_obj_set_style_text_color(clock_label, oklch_to_lv(current.clock), LV_PART_MAIN);
+        breath = 0;
+    compute_rows(current, breath, w.condition == KACHEL_COND_FOG);
 
-    // --- clock ---
+    // --- mark: clock, demoted to 60% during rush (§D) ---
+    lv_obj_set_style_text_color(clock_label, oklch_to_lv(current.clock), LV_PART_MAIN);
+    lv_obj_set_style_text_opa(clock_label, dp == DP_RUSH ? (lv_opa_t)153 : LV_OPA_COVER,
+                              LV_PART_MAIN);
     char text[8];
     if (time_sync_clock_text(text, sizeof(text)))
         lv_label_set_text(clock_label, text);
 
-    // --- calendar guest line (§6: within 2 h; leaves 5 min after start) ---
-    auto ev = state_next_event();
-    time_t now = time(nullptr);
-    bool show_event = ev.valid && (ev.start - now) <= 2 * 3600 && now <= ev.start + 300;
-    bool event_shown = !lv_obj_has_flag(event_label, LV_OBJ_FLAG_HIDDEN);
-    if (show_event)
+    // --- line: temp + precip window (§F) ---
+    if (w.valid)
     {
-        struct tm st;
-        localtime_r(&ev.start, &st);
-        lv_label_set_text_fmt(event_label, "%02d:%02d \xC2\xB7 %s", st.tm_hour, st.tm_min, ev.title);
-        if (!event_shown)
-            fade_to(event_label, LV_OPA_TRANSP, LV_OPA_COVER, KACHEL_T_INFO_FADE_MS, false);
+        char line[48];
+        int temp = (int)lroundf(w.temp);
+        if (w.precip_12h_mm > 0.5f && w.precip_start_h >= 0)
+            snprintf(line, sizeof(line), "%d\xC2\xB0 \xC2\xB7 Regen ab %dh", temp,
+                     w.precip_start_h);
+        else
+            snprintf(line, sizeof(line), "%d\xC2\xB0", temp);
+        lv_label_set_text(line_label, line);
+        lv_obj_set_style_text_color(line_label, oklch_to_lv(current.line), LV_PART_MAIN);
+        lv_obj_remove_flag(line_label, LV_OBJ_FLAG_HIDDEN);
     }
-    else if (event_shown)
-        fade_to(event_label, LV_OPA_COVER, LV_OPA_TRANSP, KACHEL_T_INFO_FADE_MS, true);
 
-    // --- timer guest card + escalation ladder ---
+    // --- droplets: count = precip tercile; ticks when frozen (§F) ---
+    int drops = 0;
+    if (w.precip_12h_mm > 8.0f) drops = 3;
+    else if (w.precip_12h_mm > 2.0f) drops = 2;
+    else if (w.precip_12h_mm > 0.5f) drops = 1;
+    else if (w.condition == KACHEL_COND_RAIN || w.condition == KACHEL_COND_SNOW) drops = 1;
+    bool frozen = w.condition == KACHEL_COND_SNOW;
+    for (int i = 0; i < 3; i++)
+    {
+        droplet_pts[i][0] = {(lv_value_precise_t)(56 + i * 16 + (frozen ? 0 : 6)),
+                             (lv_value_precise_t)378};
+        droplet_pts[i][1] = {(lv_value_precise_t)(56 + i * 16), (lv_value_precise_t)394};
+        lv_line_set_points(droplet_lines[i], droplet_pts[i], 2);
+        if (i < drops)
+            lv_obj_remove_flag(droplet_lines[i], LV_OBJ_FLAG_HIDDEN);
+        else
+            lv_obj_add_flag(droplet_lines[i], LV_OBJ_FLAG_HIDDEN);
+    }
+
+    // --- slot: timer preempts, then daypart calendar ladder (§E) ---
     auto tmr = state_timer();
+    time_t now = time(nullptr);
     if (tmr.active)
     {
         long remain = (long)(tmr.ends_at - now);
         if (remain > 0)
         {
-            lv_label_set_text(timer_name_label, tmr.label);
+            lv_label_set_text(slot_label, tmr.label);
             if (remain >= 3600)
-                lv_label_set_text_fmt(timer_count_label, "%ld:%02ld:%02ld",
+                lv_label_set_text_fmt(slot_count_label, "%ld:%02ld:%02ld",
                                       remain / 3600, (remain % 3600) / 60, remain % 60);
             else
-                lv_label_set_text_fmt(timer_count_label, "%ld:%02ld", remain / 60, remain % 60);
+                lv_label_set_text_fmt(slot_count_label, "%ld:%02ld", remain / 60, remain % 60);
             if (timer_ui == TIMER_HIDDEN || timer_ui == TIMER_DONE)
             {
-                reset_card_style();
-                fade_to(timer_card, LV_OPA_TRANSP, LV_OPA_COVER, KACHEL_T_CARD_IN_MS, false);
+                reset_slot_style();
+                slot_show(true);
                 timer_ui = TIMER_RUNNING;
             }
             if (timer_ui == TIMER_RUNNING && remain <= 60)
             {
                 // notable accent (§5.5): countdown warms, no motion
-                lv_obj_set_style_text_color(timer_count_label,
+                lv_obj_set_style_text_color(slot_count_label,
                                             oklch_to_lv({0.72f, 0.070f, 70}), LV_PART_MAIN);
                 timer_ui = TIMER_NOTABLE;
             }
@@ -369,23 +585,33 @@ static void tick(lv_timer_t *)
         {
             if (timer_ui == TIMER_RUNNING || timer_ui == TIMER_NOTABLE)
             {
-                lv_label_set_text(timer_count_label, "0:00");
+                lv_label_set_text(slot_count_label, "0:00");
                 urgent_pulse();
                 timer_ui = TIMER_DONE;
                 timer_done_ms = now_ms;
             }
-            // §5.5 self-decay fallback if nobody taps
             if (timer_ui == TIMER_DONE && now_ms - timer_done_ms > KACHEL_T_DONE_DECAY_MS)
             {
-                fade_to(timer_card, LV_OPA_COVER, LV_OPA_TRANSP, KACHEL_T_CARD_OUT_MS, true);
+                slot_hide();
                 timer_ui = TIMER_HIDDEN;
             }
         }
     }
-    else if (timer_ui != TIMER_HIDDEN)
+    else
     {
-        fade_to(timer_card, LV_OPA_COVER, LV_OPA_TRANSP, KACHEL_T_CARD_OUT_MS, true);
-        timer_ui = TIMER_HIDDEN;
+        if (timer_ui != TIMER_HIDDEN)
+        {
+            reset_slot_style();
+            slot_hide();
+            timer_ui = TIMER_HIDDEN;
+        }
+        if (timer_ui == TIMER_HIDDEN)
+        {
+            if (fill_slot_calendar(dp))
+                slot_show(false);
+            else
+                slot_hide();
+        }
     }
 }
 
@@ -402,52 +628,58 @@ void ambient_face_init(lv_obj_t *tile)
     lv_canvas_set_buffer(canvas, canvas_buf, W, H, LV_COLOR_FORMAT_RGB565);
     lv_obj_set_pos(canvas, 0, 0);
 
-    current = target = params_for_now();
-    render_gradient(current, 0);
+    current = target = target_for_now();
+    compute_rows(current, 0, false);
 
-    // clock: center (240, 200), never moves (DESIGN_FACE.md §D)
+    // MARK: Doto clock, center (240, 200), anchor eternal (§D)
     clock_label = lv_label_create(tile);
-    lv_obj_set_style_text_font(clock_label, &font_clock_176, LV_PART_MAIN);
+    lv_obj_set_style_text_font(clock_label, &font_clock_100, LV_PART_MAIN);
     lv_label_set_text(clock_label, "--:--");
     lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, -40);
     lv_obj_set_style_text_color(clock_label, oklch_to_lv(current.clock), LV_PART_MAIN);
 
-    // calendar line: center (240, 448)
-    event_label = lv_label_create(tile);
-    lv_obj_set_style_text_font(event_label, &font_guest_22, LV_PART_MAIN);
-    lv_obj_set_style_text_color(event_label, KACHEL_TEXT_DIM, LV_PART_MAIN);
-    lv_obj_set_width(event_label, 400);
-    lv_label_set_long_mode(event_label, LV_LABEL_LONG_DOT);
-    lv_obj_set_style_text_align(event_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_align(event_label, LV_ALIGN_CENTER, 0, 208);
-    lv_obj_add_flag(event_label, LV_OBJ_FLAG_HIDDEN);
+    // LINE: temp + precip window, top-left (36, 52) (§F)
+    line_label = lv_label_create(tile);
+    lv_obj_set_style_text_font(line_label, &font_text_22, LV_PART_MAIN);
+    lv_obj_align(line_label, LV_ALIGN_TOP_LEFT, 36, 40);
+    lv_obj_add_flag(line_label, LV_OBJ_FLAG_HIDDEN);
 
-    // timer card: 280x96, center (240, 376)
-    timer_card = lv_obj_create(tile);
-    lv_obj_remove_style_all(timer_card);
-    lv_obj_set_size(timer_card, 280, 96);
-    lv_obj_align(timer_card, LV_ALIGN_CENTER, 0, 136);
-    lv_obj_set_style_radius(timer_card, 24, LV_PART_MAIN);
-    lv_obj_set_style_border_width(timer_card, 1, LV_PART_MAIN);
-    // §4 one-gesture silence must work on the card itself: bubble the tap
-    // up to the tile's dismiss handler (card keeps default CLICKABLE)
-    lv_obj_add_flag(timer_card, LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_add_flag(timer_card, LV_OBJ_FLAG_HIDDEN);
-    timer_name_label = lv_label_create(timer_card);
-    lv_obj_set_style_text_font(timer_name_label, &font_guest_22, LV_PART_MAIN);
-    lv_obj_set_style_text_color(timer_name_label, KACHEL_TEXT_DIM, LV_PART_MAIN);
-    lv_obj_align(timer_name_label, LV_ALIGN_TOP_MID, 0, 6);
-    timer_count_label = lv_label_create(timer_card);
-    lv_obj_set_style_text_font(timer_count_label, &font_timer_72, LV_PART_MAIN);
-    lv_obj_align(timer_count_label, LV_ALIGN_BOTTOM_MID, 0, -2);
-    reset_card_style();
+    // DROPLETS: 1-3 hairlines at (56, 388) (§F)
+    for (int i = 0; i < 3; i++)
+    {
+        droplet_lines[i] = lv_line_create(tile);
+        lv_obj_set_style_line_width(droplet_lines[i], 2, LV_PART_MAIN);
+        lv_obj_set_style_line_color(droplet_lines[i], oklch_to_lv(DROPLET), LV_PART_MAIN);
+        lv_obj_set_style_line_rounded(droplet_lines[i], true, LV_PART_MAIN);
+        lv_obj_add_flag(droplet_lines[i], LV_OBJ_FLAG_HIDDEN);
+    }
+
+    // SLOT: full-width amber plinth, bottom (§E)
+    slot_band = lv_obj_create(tile);
+    lv_obj_remove_style_all(slot_band);
+    lv_obj_set_size(slot_band, W, 88);
+    lv_obj_align(slot_band, LV_ALIGN_BOTTOM_MID, 0, 0);
+    // §4 one-gesture silence: taps on the slot bubble to the tile handler
+    lv_obj_add_flag(slot_band, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(slot_band, LV_OBJ_FLAG_HIDDEN);
+    slot_count_label = lv_label_create(slot_band);
+    lv_obj_set_style_text_font(slot_count_label, &font_timer_44, LV_PART_MAIN);
+    lv_obj_align(slot_count_label, LV_ALIGN_TOP_MID, 0, 2);
+    slot_label = lv_label_create(slot_band);
+    lv_obj_set_style_text_font(slot_label, &font_text_22, LV_PART_MAIN);
+    lv_obj_set_width(slot_label, 440);
+    lv_label_set_long_mode(slot_label, LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_align(slot_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align(slot_label, LV_ALIGN_BOTTOM_MID, 0, -10);
+    reset_slot_style();
 
     // one-gesture silence (§4): any tap on the face dismisses a done timer
     lv_obj_add_event_cb(tile, [](lv_event_t *)
                         {
         if (timer_ui == TIMER_DONE)
         {
-            fade_to(timer_card, LV_OPA_COVER, LV_OPA_TRANSP, KACHEL_T_CARD_OUT_MS, true);
+            reset_slot_style();
+            slot_hide();
             timer_ui = TIMER_HIDDEN;
         } },
                         LV_EVENT_CLICKED, nullptr);

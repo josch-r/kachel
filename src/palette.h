@@ -13,5 +13,5 @@
 #define KACHEL_SURFACE_HOUSE  lv_color_hex(0x111810) // oklch(0.20 0.020 140) 0x10C2 Household layer placeholder surface
 #define KACHEL_TEXT_PRIMARY   lv_color_hex(0xe4ddcf) // oklch(0.90 0.020  85) 0xE6F9 primary text, warm off-white
 #define KACHEL_TEXT_DIM       lv_color_hex(0x868073) // oklch(0.60 0.020  85) 0x840E secondary text
-#define KACHEL_NIGHT_AMBER    lv_color_hex(0x966626) // oklch(0.55 0.100  70) 0x9324 ultra-dim night clock, warm amber
+#define KACHEL_NIGHT_AMBER    lv_color_hex(0x95672c) // oklch(0.55 0.095  70) PALETTE_V2 night clock amber
 #define KACHEL_BG_BLACK       lv_color_hex(0x000000) // oklch(0 0 0)                  true black, night blackout only

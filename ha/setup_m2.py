@@ -56,9 +56,14 @@ automations = {
                 "topic": "kachel/state/weather", "retain": True,
                 "payload": (
                     '{% set fc12 = fc["weather.home"]["forecast"][:12] %}'
+                    '{% set ns2 = namespace(h=-1) %}'
+                    '{% for f in fc12 %}{% if ns2.h < 0 and (f.precipitation or 0) > 0.1 %}'
+                    '{% set ns2.h = as_timestamp(f.datetime) | timestamp_custom("%H") | int %}'
+                    '{% endif %}{% endfor %}'
                     '{{ {"temp": state_attr("weather.home", "temperature"),'
                     ' "condition": states("weather.home"),'
                     ' "precip_12h_mm": (fc12 | map(attribute="precipitation") | sum) | round(1),'
+                    ' "precip_start_h": ns2.h,'
                     ' "sunrise": as_timestamp(state_attr("sun.sun", "next_rising")) | timestamp_custom("%H:%M"),'
                     ' "sunset": as_timestamp(state_attr("sun.sun", "next_setting")) | timestamp_custom("%H:%M")} | tojson }}'
                 )}}],
