@@ -91,3 +91,13 @@ feels earned. C > 0.05 exists only while the sun crosses the horizon and inside 
 amber slot: saturation is spent twice a day and when something needs you. Two temperature
 poles (slate/bone), rose-amber as the hinge that exists only during the crossing.
 Emptiness is a state: absent band = clear, absent droplets = dry, empty slot = free.
+
+## 8. On-device tuning log (§6 gate iterations)
+
+**v2.1 (2026-07-25, first live daylight session):** the seam vanished in a bright
+kitchen — ambient reflection swamps L ≤ 0.35 exactly as §2 of the critic audit
+predicted ("audit day-mode floor against screen-surface reflection"). Seam arc
+raised to 0.16 → 0.36 → 0.44 → 0.32 → 0.17 (Rift/Vault/Ember seams only; tops,
+bottoms, Hush and Hearth unchanged — the top-stays-dark law holds; L clamp
+0.35 → 0.45, horizon only in practice). Josch visual verdict pending; night
+phases unaffected.

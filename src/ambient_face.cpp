@@ -34,13 +34,13 @@ static const phase_params PH_HUSH = { // pre-dawn: total slate
     {{0.10f, 0.020f, 250}, {0.16f, 0.032f, 248}, {0.09f, 0.012f, 250}},
     {0.72f, 0.030f, 85}, {0.58f, 0.022f, 78}};
 static const phase_params PH_RIFT = { // sunrise: cool lid, rose seam
-    {{0.14f, 0.030f, 250}, {0.30f, 0.100f, 45}, {0.10f, 0.018f, 75}},
+    {{0.14f, 0.030f, 250}, {0.36f, 0.105f, 45}, {0.10f, 0.018f, 75}},
     {0.84f, 0.026f, 80}, {0.64f, 0.020f, 80}};
 static const phase_params PH_VAULT = { // day: blue vault, bone seam
-    {{0.15f, 0.042f, 243}, {0.35f, 0.024f, 90}, {0.13f, 0.016f, 80}},
+    {{0.16f, 0.042f, 243}, {0.44f, 0.026f, 90}, {0.14f, 0.016f, 80}},
     {0.90f, 0.018f, 85}, {0.70f, 0.018f, 85}};
 static const phase_params PH_EMBER = { // sunset: darker lid, warmer seam
-    {{0.11f, 0.028f, 255}, {0.26f, 0.095f, 57}, {0.09f, 0.014f, 75}},
+    {{0.11f, 0.028f, 255}, {0.32f, 0.100f, 57}, {0.09f, 0.014f, 75}},
     {0.80f, 0.034f, 78}, {0.64f, 0.020f, 80}};
 static const phase_params PH_HEARTH = { // evening: total bone, lamplight
     {{0.09f, 0.016f, 75}, {0.17f, 0.035f, 75}, {0.09f, 0.012f, 78}},
@@ -245,7 +245,7 @@ static face_params target_for_now()
     // clamps: field floor L 0.09 (below = true RGB565 black, PALETTE_V2), C cap
     for (auto &s : f.stops)
     {
-        s.L = s.L < 0.09f ? 0.09f : (s.L > 0.35f ? 0.35f : s.L);
+        s.L = s.L < 0.09f ? 0.09f : (s.L > 0.45f ? 0.45f : s.L);
         s.C = s.C > 0.10f ? 0.10f : s.C;
     }
     return f;
@@ -649,7 +649,9 @@ void ambient_face_init(lv_obj_t *tile)
     clock_label = lv_label_create(tile);
     lv_obj_set_style_text_font(clock_label, &font_clock_100, LV_PART_MAIN);
     lv_label_set_text(clock_label, "--:--");
-    lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, -40);
+    // -32: digits sit high in the 112px line box (glyph rows 0-97,
+    // baseline 101) — this puts the digit block center exactly at y=200
+    lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, -32);
     lv_obj_set_style_text_color(clock_label, oklch_to_lv(current.clock), LV_PART_MAIN);
 
     // LINE: temp + precip window, top-left (36, 52) (§F)
