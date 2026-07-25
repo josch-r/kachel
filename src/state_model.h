@@ -49,6 +49,17 @@ struct kachel_timer
     bool active = false;
 };
 
+constexpr int KACHEL_EVENTS_MAX = 3; // contract: calendar next[] max 3
+constexpr int KACHEL_BRING_ITEMS_MAX = 5;
+
+struct kachel_bring
+{
+    int count = 0;
+    char items[KACHEL_BRING_ITEMS_MAX][48];
+    int item_count = 0;
+    bool valid = false;
+};
+
 // Ingest a raw payload (called from MQTT task context).
 void state_model_ingest(int topic, const char *payload);
 
@@ -57,3 +68,12 @@ kachel_air state_air();
 kachel_weather state_weather();
 kachel_event state_next_event();
 kachel_timer state_timer();
+kachel_bring state_bring();
+// Copies up to KACHEL_EVENTS_MAX events into out; returns count.
+int state_events(kachel_event *out);
+
+// PM2.5 history ring (24 h, 5-min samples; PSRAM; resets on reboot — §10).
+// Call tick ~1 Hz from the UI thread; it samples last-known pm25 on schedule.
+void state_history_tick();
+// Copies samples oldest-first into out (max n); returns count. -1 = no data.
+int state_history(int16_t *out, int n);

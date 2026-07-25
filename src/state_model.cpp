@@ -6,10 +6,14 @@
 
 #include "mqtt_client.h"
 
+#include "config.h"
+
 static kachel_air air;
 static kachel_weather weather;
-static kachel_event next_event;
+static kachel_event events[KACHEL_EVENTS_MAX];
+static int event_count = 0;
 static kachel_timer timer_state;
+static kachel_bring bring;
 static SemaphoreHandle_t lock;
 
 static void ensure_lock()
@@ -93,15 +97,39 @@ void state_model_ingest(int topic, const char *payload)
     }
     case KACHEL_TOPIC_CALENDAR:
     {
-        next_event.valid = false;
+        event_count = 0;
         JsonArray next = doc["next"];
-        if (!next.isNull() && next.size() > 0)
+        if (!next.isNull())
         {
-            const char *title = next[0]["title"] | "";
-            strlcpy(next_event.title, title, sizeof(next_event.title));
-            next_event.start = iso_local_to_epoch(next[0]["start"] | (const char *)nullptr);
-            next_event.valid = next_event.start > 0;
+            for (JsonObject ev : next)
+            {
+                if (event_count >= KACHEL_EVENTS_MAX)
+                    break;
+                kachel_event &e = events[event_count];
+                strlcpy(e.title, ev["title"] | "", sizeof(e.title));
+                e.start = iso_local_to_epoch(ev["start"] | (const char *)nullptr);
+                e.valid = e.start > 0;
+                if (e.valid)
+                    event_count++;
+            }
         }
+        break;
+    }
+    case KACHEL_TOPIC_BRING:
+    {
+        bring.count = doc["count"] | 0;
+        bring.item_count = 0;
+        JsonArray items = doc["items"];
+        if (!items.isNull())
+        {
+            for (const char *item : items)
+            {
+                if (bring.item_count >= KACHEL_BRING_ITEMS_MAX || item == nullptr)
+                    break;
+                strlcpy(bring.items[bring.item_count++], item, sizeof(bring.items[0]));
+            }
+        }
+        bring.valid = true;
         break;
     }
     case KACHEL_TOPIC_TIMER:
@@ -132,5 +160,62 @@ void state_model_ingest(int topic, const char *payload)
 
 kachel_air state_air() { SNAPSHOT(kachel_air, air) }
 kachel_weather state_weather() { SNAPSHOT(kachel_weather, weather) }
-kachel_event state_next_event() { SNAPSHOT(kachel_event, next_event) }
+kachel_event state_next_event() { SNAPSHOT(kachel_event, events[0]) }
 kachel_timer state_timer() { SNAPSHOT(kachel_timer, timer_state) }
+kachel_bring state_bring() { SNAPSHOT(kachel_bring, bring) }
+
+int state_events(kachel_event *out)
+{
+    ensure_lock();
+    xSemaphoreTake(lock, portMAX_DELAY);
+    int n = event_count;
+    for (int i = 0; i < n; i++)
+        out[i] = events[i];
+    xSemaphoreGive(lock);
+    return n;
+}
+
+// --- PM2.5 history ring (UI-thread only: tick + reader both run under LVGL) ---
+
+static int16_t *history_ring;
+static int history_start, history_count;
+static uint32_t last_sample_ms;
+static bool ever_sampled;
+
+void state_history_tick()
+{
+    kachel_air a = state_air();
+    if (!a.valid)
+        return;
+    uint32_t now = millis();
+    if (ever_sampled && now - last_sample_ms < KACHEL_PM25_SAMPLE_S * 1000UL)
+        return;
+    if (history_ring == nullptr)
+    {
+        history_ring = (int16_t *)heap_caps_malloc(
+            KACHEL_PM25_HISTORY_N * sizeof(int16_t), MALLOC_CAP_SPIRAM);
+        if (history_ring == nullptr) // no PSRAM? tiny buffer, heap is fine
+            history_ring = (int16_t *)malloc(KACHEL_PM25_HISTORY_N * sizeof(int16_t));
+        if (history_ring == nullptr)
+            return;
+    }
+    last_sample_ms = now;
+    ever_sampled = true;
+    int slot = (history_start + history_count) % KACHEL_PM25_HISTORY_N;
+    history_ring[slot] = (int16_t)a.pm25;
+    if (history_count < KACHEL_PM25_HISTORY_N)
+        history_count++;
+    else
+        history_start = (history_start + 1) % KACHEL_PM25_HISTORY_N;
+}
+
+int state_history(int16_t *out, int n)
+{
+    if (history_ring == nullptr || history_count == 0)
+        return -1;
+    int count = history_count < n ? history_count : n;
+    int from = history_count - count; // newest-biased window, oldest-first order
+    for (int i = 0; i < count; i++)
+        out[i] = history_ring[(history_start + from + i) % KACHEL_PM25_HISTORY_N];
+    return count;
+}

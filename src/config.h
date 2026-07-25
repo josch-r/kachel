@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#define KACHEL_FW_VERSION "0.3.0-m3"
+#define KACHEL_FW_VERSION "0.4.0-m4"
 
 // --- schedule (SPEC §5.12; all times configurable here) ---
 constexpr int KACHEL_DAY_START_MIN = 6 * 60;    // 06:00 back to day scale
@@ -17,6 +17,10 @@ constexpr float KACHEL_BRIGHT_NIGHT = 0.01f; // ultra-dim floor (min PWM duty 1%
 
 // --- interaction (SPEC §4) ---
 constexpr uint32_t KACHEL_IDLE_RETURN_MS = 20000; // 20 s, valid range 10-30 s
+
+// --- PM2.5 history ring (§10 decision: device-side, resets on reboot) ---
+constexpr uint32_t KACHEL_PM25_SAMPLE_S = 300; // one sample per 5 min
+constexpr int KACHEL_PM25_HISTORY_N = 288;     // 24 h window
 
 // --- test mode ---
 // 1 = compress 24 h into 2 min for the dim-cycle evidence video; 0 = real time
