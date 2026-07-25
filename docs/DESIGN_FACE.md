@@ -77,8 +77,9 @@ capped at the elevated value — frying spikes are expected, escalation waits.
 
 ## E. Slot (bottom band — replaces v1 timer card + calendar line)
 
-One amber element, text Departure Mono 22 px center (240, 448); timer adds countdown in
-Doto 44 px amber above the label. Fill/colors PALETTE_V2 §4. Priority (highest wins):
+One amber element, text Inter Tight 22 px (Josch 2026-07-25 — Departure Mono read too
+teletype in the slot; restyle pass may revisit), wrapping to two lines, centered in the
+band; timer adds countdown in Doto 44 px amber above a single-line label. Fill/colors PALETTE_V2 §4. Priority (highest wins):
 
 1. **Timer running** — label + countdown M:SS (H:MM:SS ≥1 h). T−60 s notable cue and the
    done-beat per §5.5: urgency = +C +L within H70, never a hue move. Tap anywhere
@@ -127,7 +128,8 @@ amber into forbidden red. 00:00–06:00 black (unchanged, display.cpp owns).
 |---|---|---|---|---|
 | font_clock_100 | Doto wght 320 ROND 25 | ~100 px | 0-9 : | clock |
 | font_timer_44 | Doto wght 320 ROND 25 | 44 px | 0-9 : | timer countdown |
-| font_text_22 | Departure Mono | 22 px | 0x20-0x7E ° · ÄÖÜäöüß | slot text, line |
+| font_text_22 | Departure Mono | 22 px | 0x20-0x7E ° · ÄÖÜäöüß | data line (temp/precip) |
+| font_guest_22 | Inter Tight | 22 px | (v1 asset, kept) | slot text |
 
 Three instances = the flash budget. Doto dots must land on whole pixels (verify at
 conversion; reject sizes where dots straddle). Departure Mono at 22 px = 2× its 11 px

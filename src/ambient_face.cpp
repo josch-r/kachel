@@ -18,6 +18,7 @@
 LV_FONT_DECLARE(font_clock_100);
 LV_FONT_DECLARE(font_timer_44);
 LV_FONT_DECLARE(font_text_22);
+LV_FONT_DECLARE(font_guest_22); // Inter Tight 22 — slot text (Josch 2026-07-25)
 
 // ---------------------------------------------------------------- params
 
@@ -394,9 +395,15 @@ static void slot_show(bool with_count)
         slot_shown = true;
     }
     if (with_count)
+    {
         lv_obj_remove_flag(slot_count_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_align(slot_label, LV_ALIGN_BOTTOM_MID, 0, -6); // countdown above
+    }
     else
+    {
         lv_obj_add_flag(slot_count_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_align(slot_label, LV_ALIGN_CENTER, 0, 0); // wrapped text centers
+    }
 }
 
 static void slot_hide()
@@ -673,11 +680,11 @@ void ambient_face_init(lv_obj_t *tile)
     lv_obj_set_style_text_font(slot_count_label, &font_timer_44, LV_PART_MAIN);
     lv_obj_align(slot_count_label, LV_ALIGN_TOP_MID, 0, 2);
     slot_label = lv_label_create(slot_band);
-    lv_obj_set_style_text_font(slot_label, &font_text_22, LV_PART_MAIN);
+    lv_obj_set_style_text_font(slot_label, &font_guest_22, LV_PART_MAIN);
     lv_obj_set_width(slot_label, 440);
-    lv_label_set_long_mode(slot_label, LV_LABEL_LONG_DOT);
+    lv_label_set_long_mode(slot_label, LV_LABEL_LONG_WRAP); // 2 lines fit the band
     lv_obj_set_style_text_align(slot_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_align(slot_label, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_obj_align(slot_label, LV_ALIGN_CENTER, 0, 0);
     reset_slot_style();
 
     // one-gesture silence (§4): any tap on the face dismisses a done timer
