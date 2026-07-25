@@ -170,6 +170,7 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | Face styling pass (parked, 2026-07-25) | Josch direction: face should be "more proactive/provocative in its calmness — even calmer"; typographic inspiration: Nothing (NDot/NType). Deferred until after M4/M5 functional work; lands as token+typeface diff against docs/DESIGN_FACE.md via change protocol. Red stays forbidden regardless (hue law) |
 | Fan auto mode (M4, 2026-07-25) | Josch request: purifier's auto preset is the daily default and must be settable from the tile. `cmd/air` gains `{mode:"auto"}` variant; state `mode` field now drives the highlight. UI = one 5-segment control (Aus/Auto/1/2/3, 80 px targets) — counts as one primary choice under §4's max-4 rule (one decision dimension), not five |
 | Bring! list rewire (M4, 2026-07-25) | state/bring automation targeted empty `todo.einkaufsliste`; real shared list is `todo.shared_list` ("shared*list"). Config fix in ha/setup_m2.py, verified live (count 5) |
+| Scene slots 1+2 (M4, 2026-07-25) | Josch: slots 1+2 = "Alles an" / "Alles aus" (fixed semantics, buttons labeled); 3+4 stay stubs (gemütlich/fokus) until co-design session. HA gotcha: entity registry pins entity_id to config-id (unique_id) — rename never re-slugs; scenes recreated under fresh config ids kachel_s1–s4 |
 
 ## 11. Open items & roadmap
 

@@ -117,8 +117,8 @@ automations = {
                 {"conditions": [{"condition": "template", "value_template": "{{ trigger.payload_json.id == %d }}" % i}],
                  "sequence": [{"action": "scene.turn_on", "target": {"entity_id": eid}}]}
                 for i, eid in {
-                    1: "scene.kachel_1_stub_alles_an", 2: "scene.kachel_2_stub_gemuetlich",
-                    3: "scene.kachel_3_stub_fokus", 4: "scene.kachel_4_stub_alles_aus"}.items()]}],
+                    1: "scene.kachel_1_alles_an", 2: "scene.kachel_2_alles_aus",
+                    3: "scene.kachel_3_stub_gemuetlich", 4: "scene.kachel_4_stub_fokus"}.items()]}],
         "mode": "single"},
 
     "kachel_cmd_air": {
@@ -140,19 +140,21 @@ automations = {
         "mode": "single"},
 }
 
+# Slots 1+2 fixed by Josch 2026-07-25 (alles an / alles aus); 3+4 remain
+# stubs until the co-design session (§11).
 scenes = {
-    "kachel_1": {"name": "Kachel 1 (stub: alles an)", "entities": {
+    "kachel_s1": {"name": "Kachel 1 (alles an)", "entities": {
         "switch.lamp_a": "on", "switch.lamp_kitchen": "on", "switch.lamp_desk": "on", "switch.lamp_c": "on",
         "light.lamp_main": {"state": "on", "brightness": 255}}},
-    "kachel_2": {"name": "Kachel 2 (stub: gemuetlich)", "entities": {
-        "switch.lamp_a": "on", "switch.lamp_kitchen": "off", "switch.lamp_desk": "off", "switch.lamp_c": "on",
-        "light.lamp_main": {"state": "on", "brightness": 100}}},
-    "kachel_3": {"name": "Kachel 3 (stub: fokus)", "entities": {
-        "switch.lamp_a": "off", "switch.lamp_kitchen": "on", "switch.lamp_desk": "on", "switch.lamp_c": "off",
-        "light.lamp_main": {"state": "on", "brightness": 255}}},
-    "kachel_4": {"name": "Kachel 4 (stub: alles aus)", "entities": {
+    "kachel_s2": {"name": "Kachel 2 (alles aus)", "entities": {
         "switch.lamp_a": "off", "switch.lamp_kitchen": "off", "switch.lamp_desk": "off", "switch.lamp_c": "off",
         "light.lamp_main": "off"}},
+    "kachel_s3": {"name": "Kachel 3 (stub: gemuetlich)", "entities": {
+        "switch.lamp_a": "on", "switch.lamp_kitchen": "off", "switch.lamp_desk": "off", "switch.lamp_c": "on",
+        "light.lamp_main": {"state": "on", "brightness": 100}}},
+    "kachel_s4": {"name": "Kachel 4 (stub: fokus)", "entities": {
+        "switch.lamp_a": "off", "switch.lamp_kitchen": "on", "switch.lamp_desk": "on", "switch.lamp_c": "off",
+        "light.lamp_main": {"state": "on", "brightness": 255}}},
 }
 
 for sid, scene in scenes.items():
