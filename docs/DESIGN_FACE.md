@@ -11,7 +11,7 @@ Canvas 480×480, horizon y=312, weather band y=0–160.
 | Stratum | Owns | Anchor (never moves) |
 |---|---|---|
 | FIELD | atmosphere: time-of-day phase + weather + air | whole canvas |
-| MARK | clock, Doto 100 px | center (240, 200) |
+| MARK | clock, Doto 100 px | center (240, 240) — true center |
 | SLOT | the one next thing that needs you (amber) | bottom band, text center (240, 448) |
 | — LINE | secondary text: temp + precip window | top-left (36, 52), left-aligned |
 | — DROPLETS | precip ≤12 h, 1–3 hairline strokes | (56, 388) |
@@ -71,7 +71,7 @@ capped at the elevated value — frying spikes are expected, escalation waits.
 | Content | HH:MM, 24 h, no seconds, static colon |
 | Typeface | Doto (OFL), static instance wght≈320 ROND 25, digits+colon subset |
 | Size | ~100 px cap height; dot pitch must land on whole pixels |
-| Anchor | center (240, 200), eternal |
+| Anchor | center (240, 240), eternal (true center; digit-block centered, not text-box) |
 | Color | per phase, PALETTE_V2 §4 (bone; ≥6.7:1 local contrast) |
 | Demotion | rush daypart: opacity → 60% (position and size never change) |
 

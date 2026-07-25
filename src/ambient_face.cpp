@@ -652,9 +652,10 @@ void ambient_face_init(lv_obj_t *tile)
     clock_label = lv_label_create(tile);
     lv_obj_set_style_text_font(clock_label, &font_clock_100, LV_PART_MAIN);
     lv_label_set_text(clock_label, "--:--");
-    // -32: digits sit high in the 112px line box (glyph rows 0-97,
-    // baseline 101) — this puts the digit block center exactly at y=200
-    lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, -32);
+    // +8: digits sit high in the 112px line box (glyph rows 0-97,
+    // baseline 101) — this puts the digit block center exactly at y=240,
+    // the true center of the square (Josch 2026-07-25)
+    lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, 8);
     lv_obj_set_style_text_color(clock_label, oklch_to_lv(current.clock), LV_PART_MAIN);
 
     // LINE: temp + precip window, top-left (36, 52) (§F)
