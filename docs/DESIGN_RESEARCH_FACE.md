@@ -289,3 +289,21 @@ Sources: [NDot — Fonts In Use](https://fontsinuse.com/typefaces/233367/ndot), 
 **Verdict:** the field's center of gravity is *clock + icon + widget grid + churn*. Every hard constraint in SPEC §5 is an inversion of a documented industry failure — the redesign should shrink the clock, zone the dial like a watchmaker, collapse states like Nest's low-light mode, and let weather be the field itself.
 
 Sources: [Nest Ambient EQ](https://support.google.com/googlenest/answer/9137130?hl=en), [Nest low-light community threads](https://www.googlenestcommunity.com/t5/Speakers-and-Displays/How-to-disable-low-light-mode-on-nest-hub-gen-2/m-p/613820), [Apple StandBy](https://support.apple.com/guide/iphone/use-standby-iph878d77632/ios), [StandBy red mode](https://www.tenorshare.com/ios-17/why-standby-mode-is-red.html), [Echo Show ads backlash](https://www.androidpolice.com/amazon-echo-show-disruptive-full-screen-ads/), [Tidbyt review](https://macwright.com/2022/03/11/tidbyt-review.html), [complication legibility](https://en.wikipedia.org/wiki/Complication_(horology)), [dial design](https://watchlab.sg/blog/watch-dials/)
+
+
+---
+---
+
+# Addendum 2026-07-25: Palette v2 expert pass (colorist + hardware critic)
+
+Two independent experts after the Three Strata decision. Colorist crafted the
+v2 OKLCH system; critic audited RGB565/IPS/PWM feasibility blind. Lead
+reconciliation (agent): bottoms floored at L 0.09 (critic: <0.08 quantizes to
+true black; bottom stop is deliberate near-black ground, information lives at
+the horizon seam); partly-cloud band 0.21 -> 0.22 (critic's tightest pair);
+elevated-air shift DOCUMENTED as subliminal-by-design (poor is the readable
+alert); veil is fill-depth (geometry), so L-budget holds at 3 levels; night
+set passes the critic's amber-redshift rule (L>=0.40 at C 0.10, or C<=0.05
+below); critic's photo-test protocol adopted as the on-device verification
+plan for the palette milestone.
+
