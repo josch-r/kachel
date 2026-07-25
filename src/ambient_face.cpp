@@ -442,13 +442,14 @@ static void urgent_pulse()
     lv_obj_set_style_text_color(slot_label, oklch_to_lv(SLOT_TEXT_URGENT), LV_PART_MAIN);
 }
 
-// --- slot content (§E priority ladder). Returns true when slot occupied. ---
+// --- slot content (§E ladder, "next event always" — §10 2026-07-25).
+// Returns true when the slot is occupied. ---
+static const char *WEEKDAYS_DE[7] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
+
 static bool fill_slot_calendar(daypart dp)
 {
     kachel_event events[KACHEL_EVENTS_MAX];
     int n = state_events(events);
-    if (n <= 0)
-        return false;
     time_t now = time(nullptr);
     struct tm today, evt;
     localtime_r(&now, &today);
@@ -456,7 +457,7 @@ static bool fill_slot_calendar(daypart dp)
     for (int i = 0; i < n; i++)
     {
         if (!events[i].valid || events[i].start + 300 < now)
-            continue; // §6: leaves 5 min after start
+            continue; // leaves 5 min after start
         localtime_r(&events[i].start, &evt);
         bool is_today = evt.tm_yday == today.tm_yday && evt.tm_year == today.tm_year;
 
@@ -470,18 +471,24 @@ static bool fill_slot_calendar(daypart dp)
                                   lv_tm.tm_hour, lv_tm.tm_min);
             return true;
         }
-        if (dp == DP_DAY && is_today && events[i].start - now <= 2 * 3600)
-        {
+        if (is_today)
             lv_label_set_text_fmt(slot_label, "%02d:%02d \xC2\xB7 %s",
                                   evt.tm_hour, evt.tm_min, events[i].title);
-            return true;
-        }
-        if (dp == DP_EVENING && !is_today)
+        else
         {
-            lv_label_set_text_fmt(slot_label, "Morgen %02d:%02d \xC2\xB7 %s",
-                                  evt.tm_hour, evt.tm_min, events[i].title);
-            return true;
+            time_t tomorrow = now + 24 * 3600;
+            struct tm tm_tom;
+            localtime_r(&tomorrow, &tm_tom);
+            bool is_tomorrow = evt.tm_yday == tm_tom.tm_yday && evt.tm_year == tm_tom.tm_year;
+            if (is_tomorrow)
+                lv_label_set_text_fmt(slot_label, "Morgen %02d:%02d \xC2\xB7 %s",
+                                      evt.tm_hour, evt.tm_min, events[i].title);
+            else
+                lv_label_set_text_fmt(slot_label, "%s %02d:%02d \xC2\xB7 %s",
+                                      WEEKDAYS_DE[evt.tm_wday], evt.tm_hour, evt.tm_min,
+                                      events[i].title);
         }
+        return true;
     }
     return false;
 }

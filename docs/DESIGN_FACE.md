@@ -85,9 +85,11 @@ Doto 44 px amber above the label. Fill/colors PALETTE_V2 §4. Priority (highest 
    dismisses done state; 60 s self-decay.
 2. **Rush:** first event today as leave-by — "HH:MM · Titel — los um HH:MM" (leave time =
    event start − configurable lead, default 15 min).
-3. **Day:** next event within 2 h — "HH:MM · Titel".
-4. **Evening:** tomorrow's first event — "Morgen HH:MM · Titel".
-5. **Empty** — nothing renders. The empty slot IS the signal.
+3. **Next event, always** (Josch amendment 2026-07-25, replaces the 2 h day-window and
+   the evening tomorrow-first rules): the next upcoming event from the feed —
+   today "HH:MM · Titel", tomorrow "Morgen HH:MM · Titel", later "Wd HH:MM · Titel".
+   Leaves 5 min after start.
+4. **Empty** — nothing renders. Emptiness now means: nothing in the next 48 h.
 
 Fades: in 600 ms, out 400 ms (timing.h tokens).
 
