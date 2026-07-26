@@ -101,3 +101,9 @@ raised to 0.16 → 0.36 → 0.44 → 0.32 → 0.17 (Rift/Vault/Ember seams only;
 bottoms, Hush and Hearth unchanged — the top-stays-dark law holds; L clamp
 0.35 → 0.45, horizon only in practice). Josch visual verdict pending; night
 phases unaffected.
+
+**v2.2 (2026-07-26, first cloudy day):** overcast band rendered but drowned in
+daylight glare (render path verified via exaggerated storm payload — veil,
+droplets, line all confirmed live by Josch). Band steps raised: partly
+0.22 → 0.28, overcast 0.29 → 0.36. Ordering holds: clear tops ≤ 0.16 <
+partly < overcast < seam 0.44. Veil (0.19) unchanged — proven visible.

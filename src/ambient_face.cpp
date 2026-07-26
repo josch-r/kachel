@@ -47,8 +47,8 @@ static const phase_params PH_HEARTH = { // evening: total bone, lamplight
     {0.68f, 0.045f, 75}, {0.58f, 0.022f, 78}};
 
 // Weather band + veil (PALETTE_V2 §2): absolute constants, never phase-tinted
-static const oklch BAND_PARTLY = {0.22f, 0.020f, 244};
-static const oklch BAND_OVERCAST = {0.29f, 0.012f, 250};
+static const oklch BAND_PARTLY = {0.28f, 0.020f, 244};
+static const oklch BAND_OVERCAST = {0.36f, 0.012f, 250};
 static const oklch VEIL = {0.19f, 0.026f, 247};
 
 // Slot ambers (PALETTE_V2 §4)
