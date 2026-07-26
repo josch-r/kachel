@@ -86,11 +86,12 @@ band; timer adds countdown in Doto 44 px amber above a single-line label. Fill/c
    dismisses done state; 60 s self-decay.
 2. **Rush:** first event today as leave-by — "HH:MM · Titel — los um HH:MM" (leave time =
    event start − configurable lead, default 15 min).
-3. **Next event, always** (Josch amendment 2026-07-25, replaces the 2 h day-window and
-   the evening tomorrow-first rules): the next upcoming event from the feed —
-   today "HH:MM · Titel", tomorrow "Morgen HH:MM · Titel", later "Wd HH:MM · Titel".
-   Leaves 5 min after start.
-4. **Empty** — nothing renders. Emptiness now means: nothing in the next 48 h.
+3. **Next event, always** (Josch 2026-07-25; horizon 2 weeks 2026-07-26): the next
+   upcoming event from the feed — today "HH:MM · Titel", tomorrow "Morgen HH:MM ·
+   Titel", ≤6 days "Wd HH:MM · Titel", beyond "DD.MM. HH:MM · Titel". All-day events
+   drop the time ("Morgen · Titel") and stay until end of day; timed events leave
+   5 min after start.
+4. **Empty** — nothing renders. Emptiness now means: nothing in the next two weeks.
 
 Fades: in 600 ms, out 400 ms (timing.h tokens).
 

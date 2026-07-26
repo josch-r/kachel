@@ -77,7 +77,7 @@ automations = {
         ],
         "actions": [
             {"action": "calendar.get_events", "target": {"entity_id": "calendar.shared"},
-             "data": {"duration": {"hours": 48}}, "response_variable": "ev"},
+             "data": {"duration": {"hours": 336}}, "response_variable": "ev"},
             {"action": "mqtt.publish", "data": {
                 "topic": "kachel/state/calendar", "retain": True,
                 "payload": (

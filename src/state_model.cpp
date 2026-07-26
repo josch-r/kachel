@@ -30,12 +30,13 @@ static int hhmm_to_min(const char *s)
 }
 
 // "2026-07-25T19:00:00+02:00" -> time_t, offset ignored (device shares the
-// backend's local timezone; contract payloads are Europe/Berlin local)
+// backend's local timezone; contract payloads are Europe/Berlin local).
+// All-day events arrive date-only ("2026-08-03") -> local midnight.
 static time_t iso_local_to_epoch(const char *s)
 {
     struct tm t = {};
     if (s == nullptr || sscanf(s, "%d-%d-%dT%d:%d:%d", &t.tm_year, &t.tm_mon,
-                               &t.tm_mday, &t.tm_hour, &t.tm_min, &t.tm_sec) < 5)
+                               &t.tm_mday, &t.tm_hour, &t.tm_min, &t.tm_sec) < 3)
         return 0;
     t.tm_year -= 1900;
     t.tm_mon -= 1;
@@ -109,7 +110,9 @@ void state_model_ingest(int topic, const char *payload)
                     break;
                 kachel_event &e = events[event_count];
                 strlcpy(e.title, ev["title"] | "", sizeof(e.title));
-                e.start = iso_local_to_epoch(ev["start"] | (const char *)nullptr);
+                const char *start_s = ev["start"] | (const char *)nullptr;
+                e.start = iso_local_to_epoch(start_s);
+                e.all_day = start_s != nullptr && strchr(start_s, 'T') == nullptr;
                 e.valid = e.start > 0;
                 if (e.valid)
                     event_count++;

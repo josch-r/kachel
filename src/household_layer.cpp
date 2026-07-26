@@ -52,13 +52,17 @@ static void refresh(lv_timer_t *)
         }
         struct tm t;
         localtime_r(&events[i].start, &t);
-        char line[96];
-        if (t.tm_yday == today.tm_yday && t.tm_year == today.tm_year)
-            snprintf(line, sizeof(line), "%02d:%02d · %s", t.tm_hour, t.tm_min,
-                     events[i].title);
+        char line[96], when[24], at[8] = "";
+        bool is_today = t.tm_yday == today.tm_yday && t.tm_year == today.tm_year;
+        if (is_today)
+            snprintf(when, sizeof(when), "Heute");
+        else if (events[i].start - now < 6 * 86400)
+            snprintf(when, sizeof(when), "%s", weekdays[t.tm_wday]);
         else
-            snprintf(line, sizeof(line), "%s %02d:%02d · %s", weekdays[t.tm_wday],
-                     t.tm_hour, t.tm_min, events[i].title);
+            snprintf(when, sizeof(when), "%02d.%02d.", t.tm_mday, t.tm_mon + 1);
+        if (!events[i].all_day)
+            snprintf(at, sizeof(at), " %02d:%02d", t.tm_hour, t.tm_min);
+        snprintf(line, sizeof(line), "%s%s · %s", when, at, events[i].title);
         set_text_if_changed(event_labels[i], line);
     }
 

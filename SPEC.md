@@ -175,6 +175,7 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | M4 accepted (2026-07-25) | Control layers live on fw 0.4.0-m4: lights 2×2 (slots 1+2 alles an/aus), air 5-segment fan control incl. auto mode, 24 h PM2.5 chart, household calendar + Bring!. Reviewer ACCEPT (one REJECT round: chart-freeze blocker fixed); interaction-loop video verified frame-by-frame. Co-resident usability pass deferred (not present) — rolls into M5 checklist |
 | Face v2 "Three Strata" (2026-07-25) | Josch-approved redesign (research council + colorist/hardware-critic experts): field/mark/slot strata, daypart engine, absolute weather band + veil, droplets + temp/precip text line, Doto+Departure Mono typography (NDot legally unusable), palette per docs/DESIGN_PALETTE_V2.md. Contract: weather gains `precip_start_h` (first forecast hour with precip >0.1 mm, −1 none) for the text line. v1 face + Inter Tight 176 retire |
 | Slot: next event always (2026-07-25) | Josch after first live day: slot shows the next upcoming event permanently (today/Morgen/weekday prefix), replacing the 2 h day-window + evening tomorrow-first rules. Rush leave-by and timer preemption unchanged. Empty slot now = nothing within 48 h |
+| Calendar horizon 2 weeks (2026-07-26) | Josch: HA window 48 h → 336 h. Events >6 days out show a date ("DD.MM."); all-day events (date-only starts, previously dropped by the parser) now parse to local midnight, render without a time, and persist to end of day |
 
 ## 11. Open items & roadmap
 

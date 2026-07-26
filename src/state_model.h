@@ -40,7 +40,8 @@ struct kachel_weather
 struct kachel_event
 {
     char title[64] = "";
-    time_t start = 0;
+    time_t start = 0;      // all-day events: local midnight
+    bool all_day = false;  // "start" was date-only (no T)
     bool valid = false;
 };
 

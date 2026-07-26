@@ -452,9 +452,43 @@ static void urgent_pulse()
     lv_obj_set_style_text_color(slot_label, oklch_to_lv(SLOT_TEXT_URGENT), LV_PART_MAIN);
 }
 
-// --- slot content (§E ladder, "next event always" — §10 2026-07-25).
-// Returns true when the slot is occupied. ---
+// --- slot content (§E ladder, "next event always" — §10 2026-07-25;
+// 2-week horizon + all-day events 2026-07-26). Returns true when occupied. ---
 static const char *WEEKDAYS_DE[7] = {"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
+
+// whole local days between now and then (0 = today, 1 = tomorrow, ...)
+static int days_until(time_t then, time_t now)
+{
+    struct tm a, b;
+    localtime_r(&now, &a);
+    localtime_r(&then, &b);
+    a.tm_hour = a.tm_min = a.tm_sec = 0;
+    b.tm_hour = b.tm_min = b.tm_sec = 0;
+    a.tm_isdst = b.tm_isdst = -1;
+    return (int)((mktime(&b) - mktime(&a)) / 86400);
+}
+
+// "Heute"/"Morgen"/"Fr"/"05.08." + optional HH:MM + title, into slot_label
+static void slot_event_text(const kachel_event &e, int days, const struct tm &evt)
+{
+    char when[24];
+    if (days <= 0)
+        snprintf(when, sizeof(when), "Heute");
+    else if (days == 1)
+        snprintf(when, sizeof(when), "Morgen");
+    else if (days <= 6)
+        snprintf(when, sizeof(when), "%s", WEEKDAYS_DE[evt.tm_wday]);
+    else
+        snprintf(when, sizeof(when), "%02d.%02d.", evt.tm_mday, evt.tm_mon + 1);
+    if (e.all_day)
+        lv_label_set_text_fmt(slot_label, "%s \xC2\xB7 %s", when, e.title);
+    else if (days <= 0)
+        lv_label_set_text_fmt(slot_label, "%02d:%02d \xC2\xB7 %s",
+                              evt.tm_hour, evt.tm_min, e.title);
+    else
+        lv_label_set_text_fmt(slot_label, "%s %02d:%02d \xC2\xB7 %s", when,
+                              evt.tm_hour, evt.tm_min, e.title);
+}
 
 static bool fill_slot_calendar(daypart dp)
 {
@@ -466,12 +500,15 @@ static bool fill_slot_calendar(daypart dp)
 
     for (int i = 0; i < n; i++)
     {
-        if (!events[i].valid || events[i].start + 300 < now)
-            continue; // leaves 5 min after start
+        // timed events leave 5 min after start; all-day events last the day
+        time_t gone_at = events[i].all_day ? events[i].start + 86400
+                                           : events[i].start + 300;
+        if (!events[i].valid || gone_at < now)
+            continue;
         localtime_r(&events[i].start, &evt);
-        bool is_today = evt.tm_yday == today.tm_yday && evt.tm_year == today.tm_year;
+        int days = days_until(events[i].start, now);
 
-        if (dp == DP_RUSH && is_today)
+        if (dp == DP_RUSH && days <= 0 && !events[i].all_day)
         {
             time_t leave = events[i].start - KACHEL_LEAVE_LEAD_MIN * 60;
             struct tm lv_tm;
@@ -481,23 +518,7 @@ static bool fill_slot_calendar(daypart dp)
                                   lv_tm.tm_hour, lv_tm.tm_min);
             return true;
         }
-        if (is_today)
-            lv_label_set_text_fmt(slot_label, "%02d:%02d \xC2\xB7 %s",
-                                  evt.tm_hour, evt.tm_min, events[i].title);
-        else
-        {
-            time_t tomorrow = now + 24 * 3600;
-            struct tm tm_tom;
-            localtime_r(&tomorrow, &tm_tom);
-            bool is_tomorrow = evt.tm_yday == tm_tom.tm_yday && evt.tm_year == tm_tom.tm_year;
-            if (is_tomorrow)
-                lv_label_set_text_fmt(slot_label, "Morgen %02d:%02d \xC2\xB7 %s",
-                                      evt.tm_hour, evt.tm_min, events[i].title);
-            else
-                lv_label_set_text_fmt(slot_label, "%s %02d:%02d \xC2\xB7 %s",
-                                      WEEKDAYS_DE[evt.tm_wday], evt.tm_hour, evt.tm_min,
-                                      events[i].title);
-        }
+        slot_event_text(events[i], days, evt);
         return true;
     }
     return false;
