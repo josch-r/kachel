@@ -1,7 +1,7 @@
 # Kachel Face — Palette v2 (Three Strata)
 
-Colorist pass + hardware-critic audit, reconciled 2026-07-25. Pending Josch sign-off,
-then folds into DESIGN_FACE v2. All colors oklch(L C H); all blends OKLab lerp.
+Colorist pass + hardware-critic audit, reconciled + signed off 2026-07-25; tables show
+the LIVE daylight-tuned values (§8 logs each tuning round). All colors oklch(L C H); all blends OKLab lerp.
 Composition law: **light lives at the horizon; the top of the frame stays dark
 (L ≤ 0.15 always).** Phases differ in seam brightness and the temperature of the dark.
 
@@ -15,12 +15,12 @@ ground); partly-cloud band **0.21 → 0.22**; elevated-air shift is
 | Phase | Anchor | Top | Horizon | Bottom |
 |---|---|---|---|---|
 | Pre-dawn | Hush | oklch(0.10 0.020 250) | oklch(0.16 0.032 248) | oklch(0.09 0.012 250) |
-| Dawn peak | Rift | oklch(0.14 0.030 250) | oklch(0.30 0.100 45) | oklch(0.10 0.018 75) |
-| Day | Vault | oklch(0.15 0.042 243) | oklch(0.35 0.024 90) | oklch(0.13 0.016 80) |
-| Dusk peak | Ember | oklch(0.11 0.028 255) | oklch(0.26 0.095 57) | oklch(0.09 0.014 75) |
+| Dawn peak | Rift | oklch(0.14 0.030 250) | oklch(0.36 0.105 45) | oklch(0.10 0.018 75) |
+| Day | Vault | oklch(0.16 0.042 243) | oklch(0.44 0.026 90) | oklch(0.14 0.016 80) |
+| Dusk peak | Ember | oklch(0.11 0.028 255) | oklch(0.32 0.100 57) | oklch(0.09 0.014 75) |
 | Evening | Hearth | oklch(0.09 0.016 75) | oklch(0.17 0.035 75) | oklch(0.09 0.012 78) |
 
-Seam-L arc: 0.16 → 0.30 → 0.35 → 0.26 → 0.17 → black. Rose-amber exists only inside
+Seam-L arc: 0.16 → 0.36 → 0.44 → 0.32 → 0.17 → black (daylight-tuned, §8 v2.1; L clamp 0.45). Rose-amber exists only inside
 the ±40 min sunrise/sunset ramps (Hush loses v1's unearned warm seam). Slate field-chroma
 ceiling amended 0.030 → **0.045** (field stops only; band stays ≤ 0.030) — §G update.
 Breathing unchanged (horizon ±0.010 L, 6 cpm).
@@ -30,8 +30,8 @@ Breathing unchanged (horizon ±0.010 L, 6 cpm).
 | Cloud step | Value | Edge |
 |---|---|---|
 | Clear | band absent — phase top shows | — |
-| Partly | oklch(0.22 0.020 244), ±0.015 L internal grade | 24 px feather y148–172 |
-| Overcast | oklch(0.29 0.012 250), dead flat — flatness is the lid cue | 12 px feather |
+| Partly | oklch(0.28 0.020 244), ±0.015 L internal grade (§8 v2.2) | 24 px feather y148–172 |
+| Overcast | oklch(0.36 0.012 250), dead flat — flatness is the lid cue (§8 v2.2) | 12 px feather |
 
 **Precip veil** (fixed oklch(0.19 0.026 247), replaces gradient down to fill line,
 28 px feather; 36 px during Hush/Hearth): fill y214 (0.5–2 mm) / y262 (2–8 mm) /

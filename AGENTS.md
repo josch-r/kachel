@@ -42,6 +42,6 @@ Nearly all other GPIOs consumed by the 16-bit RGB bus. ST7701S: RGB parallel + 9
 
 ```sh
 pio run                   # build
-pio run -t upload         # flash over /dev/cu.usbserial-110 (then: hard reset!)
+pio run -t upload         # flash over /dev/cu.usbserial-10 (port drifts; then: hard reset — RTS pulse works)
 pio device monitor        # serial console, 115200
 ```

@@ -47,7 +47,7 @@ Weiser's one-line test governs every element: **it must inform from the peripher
 
 ### Calm rules
 1. **Yohaku resting state:** mostly dark/empty. Emptiness signals "all is well." Resist filling the square.
-2. **One primary datum per state**, readable in ≤2 s at 2–3 m → primary glyph/numeral ≥ **120 px** tall. Secondary data learnable by fixed position (spatial anchors never move).
+2. **One primary datum per state**, readable in ≤2 s at 2–3 m → primary glyph/numeral ≥ **100 px** tall (originally 120; amended with the face-v2 sign-off, §10 — Doto clock ≈97 px cap verified legible at 3 m). Secondary data learnable by fixed position (spatial anchors never move).
 3. **Abstract before display:** derived states ("air good", "rain later"), not raw feeds. Peripheral encoding via pre-attentive channels only: hue, position, fill-level, brightness.
 4. **One hue = one meaning, forever.** Hue table in §6. Saturation is alert currency — resting palette stays desaturated/warm.
 5. **Escalation ladder:** info = silent static change → notable = slow fade-in accent → needs-you-soon = gentle periodic pulse → urgent (timer done; rare) = one motion+sound event, then self-decay. Everything below urgent is ignorable indefinitely. Nothing nags.
@@ -68,19 +68,23 @@ Weiser's one-line test governs every element: **it must inform from the peripher
 14. Default silent. Sound only for opted-in urgent events (timer completion). One short soft low-leaning tone, once, volume follows day/night. Every sound has a visual equivalent. (Hardware note: speaker XOR relay jumper — verify board variant; if no speaker, urgent = visual pulse only.)
 
 ### Typography & color
-15. Distinctive typeface for numerals (mono or grotesk — pick one in design phase; no default-stack fonts). Body text ≥ 18 px at arm's length.
+15. Distinctive typeface for numerals — resolved in face v2 (§10): Doto dot-matrix for hero numerals, Departure Mono for data text, Inter Tight for prose-like lines (interim until device-wide restyle). Body text ≥ 18 px at arm's length.
 16. All colors defined as **OKLCH tokens** in one palette file; firmware receives precomputed RGB565 ramps (see §7 banding note).
 
 ## 6. Ambient face (the signature surface)
 
-Design-phase freedom within these constraints:
+Resolved by the face-v2 design pass (2026-07-25, §10; authority: `docs/DESIGN_FACE.md` +
+`docs/DESIGN_PALETTE_V2.md`). Summary of what stands:
 
-- **Primary datum: clock** (recommended — the #1 kitchen glance; open to revision in design phase).
-- **Air quality → color temperature/field state** of the generative background (hue ramp: good = calm warm-neutral field → poor = distinct shifted hue; exact ramp fixed in design phase and then never changed).
-- **Weather → texture/horizon behavior** of the field (Horizon-style OKLCH gradient derived from real sky/time-of-day is the natural direction).
-- **Running Alexa timer → guest card:** slides in as a quiet countdown element, leaves on completion (urgent beat, §5.5). Guest cards are temporary visitors; the face owns the surface.
-- **Next calendar event within 2 h → one fading guest line.** Nothing beyond 2 h appears on the resting face.
-- RGB565 gradient banding is real: enable LVGL gradient dithering; precompute dithered OKLCH ramps.
+- **Three Strata:** FIELD (5-phase gradient + absolute weather band/veil + air hue shift),
+  MARK (Doto clock ≈100 px, anchor eternal at true center), SLOT (one amber next-thing band).
+- **Weather** is absolutely encoded (fixed sky-band lightness steps + fill-depth precip veil
+  + 1–3 droplet hairlines + 22 px temp/precip text line) — v1's relative gradient modifiers
+  are dead.
+- **Timer** preempts the slot (countdown + the §5.5 urgent beat); **calendar**: the next
+  upcoming event always shows (2-week horizon, §10).
+- RGB565 banding: Bayer 8×8 dithered PSRAM canvas; palette obeys the hardware rules in
+  DESIGN_PALETTE_V2 (field floor L 0.09, night-amber red-shift guard).
 
 ## 7. Architecture
 

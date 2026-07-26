@@ -13,7 +13,7 @@ Canvas 480×480, horizon y=312, weather band y=0–160.
 | FIELD | atmosphere: time-of-day phase + weather + air | whole canvas |
 | MARK | clock, Doto 100 px | center (240, 240) — true center |
 | SLOT | the one next thing that needs you (amber) | bottom band, text center (240, 448) |
-| — LINE | secondary text: temp + precip window | top-left (36, 52), left-aligned |
+| — LINE | secondary text: temp + precip window | top-left (36, 40), left-aligned |
 | — DROPLETS | precip ≤12 h, 1–3 hairline strokes | (56, 388) |
 
 Relevance moves through intensity and fill, **never position**. Empty slot, absent droplets,
@@ -109,8 +109,8 @@ vertical ticks. Absence = dry. One 500 ms ease on change, then static.
 | Daypart | Window | Primary | Clock | Slot |
 |---|---|---|---|---|
 | Rush | 06:00–09:00 weekdays (config) | weather (field amplitude ×1, droplets, line) | demoted 60% | leave-by |
-| Day | rush-end → sunset−40′ | clock | full | event ≤2 h |
-| Evening | sunset−40′ → 22:00 | clock | full | tomorrow first |
+| Day | rush-end → sunset−40′ | clock | full | next event (always) |
+| Evening | sunset−40′ → 22:00 | clock | full | next event (always) |
 | Night | 22:00–06:00 | §5.12 schedule owns display (amber clock → black) | — | — |
 | Cooking | overlay: timer active | timer | full | timer |
 
@@ -132,9 +132,11 @@ amber into forbidden red. 00:00–06:00 black (unchanged, display.cpp owns).
 | font_text_22 | Departure Mono | 22 px | 0x20-0x7E ° · ÄÖÜäöüß | data line (temp/precip) |
 | font_guest_22 | Inter Tight | 22 px | (v1 asset, kept) | slot text |
 
-Three instances = the flash budget. Doto dots must land on whole pixels (verify at
-conversion; reject sizes where dots straddle). Departure Mono at 22 px = 2× its 11 px
-native grid, pixel-crisp at 4 bpp. Inter Tight instances retire with v1.
+Doto dots must land on whole pixels (verify at conversion; the colon is post-processed
+to single dots by `tools/patch_doto_colon.py` — rerun after regeneration). Departure Mono
+at 22 px = 2× its 11 px native grid. Inter Tight 22/72 remain shipped for the control
+layers (and the slot) until the device-wide restyle; font_clock_176 retired with v1.
+User text is sanitized at ingest to the covered glyph set (emojis stripped, arrows → "-").
 
 ## K. On-device verification (gates v2 acceptance — PALETTE_V2 §6)
 
