@@ -44,6 +44,37 @@ static time_t iso_local_to_epoch(const char *s)
     return mktime(&t);
 }
 
+// Copy src into dst keeping only glyphs the 22 px fonts cover (ASCII,
+// umlauts, ß, °, ·). Emojis/arrows in user text rendered as gaps otherwise
+// (§10 2026-07-26). Collapses the double spaces stripping leaves behind.
+static void copy_sanitized(char *dst, size_t dst_len, const char *src)
+{
+    size_t o = 0;
+    bool last_space = true; // also trims leading spaces
+    for (const uint8_t *s = (const uint8_t *)src; *s && o + 4 < dst_len;)
+    {
+        uint32_t cp = 0;
+        int len = 1;
+        if (*s < 0x80) { cp = *s; }
+        else if ((*s & 0xE0) == 0xC0) { cp = ((*s & 0x1F) << 6) | (s[1] & 0x3F); len = 2; }
+        else if ((*s & 0xF0) == 0xE0) { len = 3; }
+        else if ((*s & 0xF8) == 0xF0) { len = 4; }
+        bool keep = (cp >= 0x20 && cp <= 0x7E) || cp == 0xB0 || cp == 0xB7 ||
+                    cp == 0xC4 || cp == 0xD6 || cp == 0xDC || cp == 0xE4 ||
+                    cp == 0xF6 || cp == 0xFC || cp == 0xDF;
+        if (keep && !(cp == ' ' && last_space))
+        {
+            for (int i = 0; i < len; i++)
+                dst[o++] = (char)s[i];
+            last_space = cp == ' ';
+        }
+        s += len;
+    }
+    while (o > 0 && dst[o - 1] == ' ')
+        o--;
+    dst[o] = '\0';
+}
+
 static kachel_condition parse_condition(const char *c)
 {
     if (c == nullptr)
@@ -109,7 +140,7 @@ void state_model_ingest(int topic, const char *payload)
                 if (event_count >= KACHEL_EVENTS_MAX)
                     break;
                 kachel_event &e = events[event_count];
-                strlcpy(e.title, ev["title"] | "", sizeof(e.title));
+                copy_sanitized(e.title, sizeof(e.title), ev["title"] | "");
                 const char *start_s = ev["start"] | (const char *)nullptr;
                 e.start = iso_local_to_epoch(start_s);
                 e.all_day = start_s != nullptr && strchr(start_s, 'T') == nullptr;
@@ -131,7 +162,7 @@ void state_model_ingest(int topic, const char *payload)
             {
                 if (bring.item_count >= KACHEL_BRING_ITEMS_MAX || item == nullptr)
                     break;
-                strlcpy(bring.items[bring.item_count++], item, sizeof(bring.items[0]));
+                copy_sanitized(bring.items[bring.item_count++], sizeof(bring.items[0]), item);
             }
         }
         bring.valid = true;
@@ -142,7 +173,7 @@ void state_model_ingest(int topic, const char *payload)
         const char *ends = doc["ends_at"] | (const char *)nullptr;
         if (ends != nullptr)
         {
-            strlcpy(timer_state.label, doc["label"] | "Timer", sizeof(timer_state.label));
+            copy_sanitized(timer_state.label, sizeof(timer_state.label), doc["label"] | "Timer");
             timer_state.ends_at = iso_local_to_epoch(ends);
             timer_state.active = timer_state.ends_at > 0;
         }
