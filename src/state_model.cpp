@@ -57,8 +57,14 @@ static void copy_sanitized(char *dst, size_t dst_len, const char *src)
         int len = 1;
         if (*s < 0x80) { cp = *s; }
         else if ((*s & 0xE0) == 0xC0) { cp = ((*s & 0x1F) << 6) | (s[1] & 0x3F); len = 2; }
-        else if ((*s & 0xF0) == 0xE0) { len = 3; }
+        else if ((*s & 0xF0) == 0xE0)
+        { cp = ((*s & 0x0F) << 12) | ((s[1] & 0x3F) << 6) | (s[2] & 0x3F); len = 3; }
         else if ((*s & 0xF8) == 0xF0) { len = 4; }
+        // arrows (U+2190-21FF, dingbat/supplemental arrow blocks) -> hyphen,
+        // so "Süd ➞ Nord" keeps its direction as "Süd - Nord"
+        if ((cp >= 0x2190 && cp <= 0x21FF) || (cp >= 0x2794 && cp <= 0x27BF) ||
+            (cp >= 0x27F0 && cp <= 0x297F) || (cp >= 0x2B00 && cp <= 0x2B1F))
+        { s += len; dst[o++] = '-'; last_space = false; continue; }
         bool keep = (cp >= 0x20 && cp <= 0x7E) || cp == 0xB0 || cp == 0xB7 ||
                     cp == 0xC4 || cp == 0xD6 || cp == 0xDC || cp == 0xE4 ||
                     cp == 0xF6 || cp == 0xFC || cp == 0xDF;
