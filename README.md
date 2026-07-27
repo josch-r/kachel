@@ -159,7 +159,7 @@ These move as a set; bumping one alone breaks the build.
 python3 ha/setup_m2.py
 ```
 
-It creates one automation per state topic (air, weather, calendar, Bring!, timer), two command handlers (`cmd/scene`, `cmd/air`), and four scene slots. Entity IDs in that file are specific to one household — edit them for yours.
+It creates one automation per state topic (air, weather, calendar, Bring!, timer), two command handlers (`cmd/scene`, `cmd/air`), and four scene slots. The entity IDs in that file are placeholders (`switch.lamp_a`, `calendar.shared`, `todo.shared_list`, …) — replace them with your own before running it.
 
 Requires the Mosquitto add-on plus whichever integrations you actually use: VeSync, Bring!, CalDAV, Open-Meteo, Hue, Alexa Media Player.
 
