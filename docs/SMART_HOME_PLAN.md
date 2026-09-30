@@ -12,13 +12,13 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 
 **Es wartet auf Josch:**
 - ESP-Teile bestellen (Einkaufsliste).
-- Flurbirne per Touchlink an die Hue Bridge koppeln (1.1). Der erste Versuch am 2026-09-29 hat nicht geklappt, die App fand die Birne nicht.
+- ~~Flurbirne koppeln (1.1)~~ erledigt 2026-09-30. Offen: in Alexa das alte „Flur“ löschen, neu suchen, Gruppe **Flur** (1.3).
 - Phase 0: Schritte 0.1, 0.2, 0.3, 0.5, 0.6 und der Hue-Teil von 0.4.
 - Wohnort in HA prüfen (Einstellungen → System → Allgemein), weil `sun.sun` daraus rechnet. Das konnte nicht per API geprüft werden.
 
 **Es wartet auf den Agenten** (jeder Schreibzugriff auf HA erst nach Joschs Go):
 1. 0.4: Bereich „Flur“ anlegen, Schreibi nach „Büro“, Bereich „Josch's Schreibtisch“ löschen.
-2. 1.2: Sobald die Flurbirne in HA auftaucht, die Entity in `light.flur` umbenennen, Bereich „Flur“. Die Szenen `kachel_s1` und `kachel_s2` um `light.flur` und `light.buro_frau_marschik` erweitern.
+2. ~~1.2~~ erledigt 2026-09-30: `light.flur`, Bereich „Flur“, in allen Kachel-Szenen. Siehe 1.5 zum Aus-Problem.
 3. 2.2: ESPHome-Konfiguration für den Flur-Sensor schreiben, sobald die Teile da sind.
 4. 2.4: Die Automation anlegen. Der Entity-Name `binary_sensor.flur_praesenz` ist angenommen und muss zur ESPHome-Konfiguration passen.
 
@@ -31,7 +31,7 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 - **`ha/setup_m2.py` nicht einfach neu ausführen.** Die Entity-IDs im Skript sind Platzhalter. Ein Lauf überschreibt die echten Szenen und Automationen in HA. Live enthalten `kachel_s1` und `kachel_s2`: `switch.oma`, `switch.kuche`, `switch.schreibi`, `switch.doni`, `light.limette`.
 - Szenen-Entity-IDs weichen von den Konfig-IDs ab: `kachel_s1` heißt in HA `scene.kachel_1_alles_an`, `kachel_s2` heißt `scene.kachel_2_alles_aus`.
 - Tapo-P100-Firmware nicht aktualisieren (siehe Ist-Stand).
-- Frau Marschik erscheint in HA ohne Hersteller und mit Firmware „0.0.0“. Das ist bei einer per Touchlink gekoppelten KAJPLATS normal.
+- Küchenglas (in Hue noch „Frau Marschik“) erscheint in HA ohne Hersteller und mit Firmware „0.0.0“. Das ist bei einer per Touchlink gekoppelten KAJPLATS normal.
 - Das Repo ist öffentlich. Die zweite Bewohnerin wird in der Doku nicht namentlich genannt.
 - Der Matter-Server in HA läuft, hat aber noch keine Geräte.
 
@@ -56,10 +56,10 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 | Oma | Tapo P100 (.57) | Wohnzimmer | WLAN → HA | ausgesteckt |
 | Küche | Tapo P100 (.58) | Küche | WLAN → HA | fällt am Küchenplatz aus (WLAN-Empfang), steht derzeit neben der Fritz!Box |
 | Limette | Tapo L610 (.56) | Wohnzimmer | WLAN → HA | ok, **Auto-Update an** |
-| Frau Marschik | IKEA KAJPLATS, Zigbee-Modus | Wohnzimmer | Hue Bridge → HA | läuft stabil (2 Wochen Verlauf geprüft), Hue-Raum heißt noch „Büro“ |
-| Flur | IKEA KAJPLATS E27 Farbe+Weiß + BILRESA | Flur | vorerst nur Fernbedienung | wird in Phase 1 per Zigbee-Modus an die Hue Bridge gekoppelt |
+| Küchenglas | IKEA KAJPLATS, Zigbee-Modus | Küche (über der Küchenzeile) | Hue Bridge → HA (`light.kuchenglas`) | läuft stabil (2 Wochen Verlauf geprüft). In Hue heißt sie noch „Frau Marschik“ im Raum „Büro“; in HA und Alexa ist sie umbenannt (2026-09-30) |
+| Flurlicht | IKEA KAJPLATS E27 Farbe+Weiß | Flur | Hue Bridge → HA (`light.flur`) | Aus über die Bridge klappt nicht, HA fängt es ab (1.5) |
 | Luftreiniger | Levoit Core 300S | Wohnzimmer | VeSync-Cloud → HA | ok |
-| Kachel | ESP32-S3, fw 0.7.0-link | Küche | MQTT → .77 | ok |
+| Kachel | ESP32-S3, fw 0.7.1-scenes | Küche | MQTT → .77 | ok |
 | Hue Bridge | BSB002 (.38) | – | LAN | ok |
 | Router | FRITZ!Box 7682, FRITZ!OS 8.25 | – | – | kein Zigbee/Thread, kein Repeater |
 
@@ -100,7 +100,7 @@ Tipp: Im Update-Dialog das Häkchen „Backup erstellen“ setzen. Das ist eine 
 
 ### 0.4 Rooms angleichen [Claude + Du]
 - [Claude] Bereich **Flur** anlegen, Schreibi in **Büro** verschieben, Bereich „Josch's Schreibtisch“ löschen.
-- [Du] Hue-App: Frau Marschik in einen Raum **Wohnzimmer** verschieben, den leeren Raum „Büro“ löschen.
+- [Du] Hue-App: „Frau Marschik“ in **Küchenglas** umbenennen, in einen Raum **Küche** verschieben, den leeren Raum „Büro“ löschen.
 
 ### 0.5 HACS-Reste entfernen [Du]
 HACS → „Alexa Media Player“ → ⋮ → Entfernen. Dasselbe für „Velux Active with Netatmo“. Danach HA neu starten.
@@ -112,7 +112,7 @@ Alexa-App → Geräte → + → Gruppe hinzufügen. Gruppen **Wohnzimmer**, **K�
 
 ## Phase 1 – Flur-KAJPLATS an die Hue Bridge (Zigbee-Modus)
 
-Dieser Weg hat bei Frau Marschik funktioniert. Die BILRESA-Fernbedienung funktioniert danach nicht mehr, und die Birne bekommt keine Firmware-Updates mehr.
+Dieser Weg hat beim Küchenglas (damals „Frau Marschik“) funktioniert. Die BILRESA-Fernbedienung funktioniert danach nicht mehr, und die Birne bekommt keine Firmware-Updates mehr.
 
 ### 1.1 Koppeln [Du]
 1. Die Birne in eine Lampe **direkt neben der Hue Bridge** schrauben, am besten eine mit Kabelschalter oder an einer schaltbaren Steckdosenleiste.
@@ -124,7 +124,7 @@ Dieser Weg hat bei Frau Marschik funktioniert. Die BILRESA-Fernbedienung funktio
 
 ### 1.2 In HA übernehmen [Claude]
 - Die Hue-Integration nimmt die Lampe automatisch auf. Die Entity in `light.flur` umbenennen, Bereich **Flur**.
-- „Kachel 1 (alles an)“ und „Kachel 2 (alles aus)“ bekommen `light.flur` und `light.buro_frau_marschik` dazu.
+- „Kachel 1 (alles an)“ und „Kachel 2 (alles aus)“ bekommen `light.flur` und `light.kuchenglas` (vorher `light.buro_frau_marschik`) dazu.
 
 ### 1.3 Alexa [Du]
 „Alexa, suche neue Geräte“. Die Lampe kommt über die Hue-Verbindung von Alexa. Danach den Flur in die Alexa-Gruppe **Flur** aufnehmen.
@@ -134,6 +134,17 @@ Dieser Weg hat bei Frau Marschik funktioniert. Die BILRESA-Fernbedienung funktio
 - [ ] Lampenschalter aus, 10 s warten, wieder an → das Licht brennt und ist innerhalb von ca. 1 Minute in HA wieder erreichbar.
 
 **Wenn An/Aus nicht funktioniert** (bei einigen Nutzern bekannt): die Birne in der Hue-App löschen, 6-mal aus- und einschalten (Reset, sie blinkt warmweiß), 10 s warten, dann 1.1 mit 12 oder 15 Zyklen wiederholen.
+
+### 1.5 Stand Flurlicht (2026-09-30)
+- **Symptom:** Aus über Hue-App, Alexa oder HA ohne Transition → die Bridge meldet kurz „aus“, nach 1–2 s ist die Birne wieder an. Dimmen geht.
+- **Vermutete Ursache** (nicht mitgeschnitten): Die Bridge schaltet mit „Off with effect“ (ZCL 0x40) aus ([Z2M #15765](https://github.com/Koenkk/zigbee2mqtt/discussions/15765)). KAJPLATS im Zigbee-Modus lehnt das mit INSUFFICIENT_SPACE ab, wenn ihr Szenen-Speicher auf 0 gefallen ist ([Z2M #30211](https://github.com/Koenkk/zigbee2mqtt/issues/30211)).
+- **Mit Transition geht es:** `light.turn_off` mit `transition: 0` bleibt aus, von Josch vor Ort bestätigt.
+- **Nicht geholfen:** Reset und Neukoppeln, dann den Strom ≤1 s nach der Raum-Zuweisung trennen (Workaround aus Z2M #30211).
+- **Umgehung in HA:**
+  - Die Kachel-Szenen laufen mit `transition: 0`.
+  - Die Automation „Flur: Aus-Rückfall abfangen“ (`flur_off_bounce_guard`) schaltet die Birne mit Transition aus, wenn sie binnen 3 s nach einem Aus wieder angeht, höchstens einmal pro 15 s. Damit geht Aus auch über Alexa und die Hue-App, mit 1–2 s Flackern.
+  - Nebenwirkung: Wer binnen 3 s nach dem Aus absichtlich wieder einschaltet, wird überstimmt.
+- **Phase 2:** Die Präsenz-Automation (2.4) ruft `light.turn_off` deshalb mit `transition: 0` auf.
 
 ---
 
@@ -207,6 +218,7 @@ actions:
         sequence:
           - action: light.turn_off
             target: { entity_id: light.flur }
+            data: { transition: 0 }   # 1.5: ohne Transition lehnt die Birne das Aus ab
 ```
 
 ### 2.5 Abnahme [Du]

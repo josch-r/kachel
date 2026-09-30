@@ -7,8 +7,8 @@
 
 LV_FONT_DECLARE(font_guest_22);
 
-// Slots 1+2 fixed (Josch 2026-07-25); 3+4 stubs until co-design (§11).
-static const char *scene_names[4] = {"Alles an", "Alles aus", "Szene 3", "Szene 4"};
+// Slots 1+2 fixed (Josch 2026-07-25); 3+4 named 2026-09-30 (SPEC §10).
+static const char *scene_names[4] = {"Alles an", "Alles aus", "TV-Chill", "Aufräumen"};
 
 static void scene_pressed(lv_event_t *e)
 {

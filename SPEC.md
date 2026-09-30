@@ -181,6 +181,7 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | Slot: next event always (2026-07-25) | Josch after first live day: slot shows the next upcoming event permanently (today/Morgen/weekday prefix), replacing the 2 h day-window + evening tomorrow-first rules. Rush leave-by and timer preemption unchanged. Empty slot now = nothing within 48 h |
 | Calendar horizon 2 weeks (2026-07-26) | Josch: HA window 48 h → 336 h. Events >6 days out show a date ("DD.MM."); all-day events (date-only starts, previously dropped by the parser) now parse to local midnight, render without a time, and persist to end of day |
 | Link mark on control layers (2026-09-29) | Josch after a Pi outage left scene taps silently dead (and queued: they would have fired on reconnect, possibly hours later). Lights + Air gain a link mark — hollow dim ring while the broker is up (hollow so it never reads as a §5.6 staleness dot); down ≥10 s (`KACHEL_T_OFFLINE_GRACE_MS`) → "Offline · N min" pill, controls 40 % opacity + disabled. Commands are dropped while offline; queue is flushed on reconnect. Tap mark → diagnostics card (WiFi SSID/RSSI/IP, broker host, up/down since, last PubSubClient rc + retry count, topic ages, fw/uptime); tap card or leave layer closes it. Face + Household unchanged (staleness dots only). fw 0.7.0-link |
+| Scene slots 3+4 (2026-09-30) | Josch: slot 3 = "TV-Chill" (Döni + Oma on, Limette 30 %, everything else off), slot 4 = "Aufräumen" (Küche + Küchenglas 100 % / 3000 K warm white, Oma, Limette 60 %; Schreibi + Döni off; Flur untouched). Slots 1+2 gain the two Hue bulbs. Scene entities renamed `scene.kachel_3_tv_chill` / `scene.kachel_4_aufraeumen`. `cmd/scene` handler now `mode: queued` (max 3): a slow Tapo L610 held a run ~10 s and `single` silently dropped the next tap. Scenes apply with `transition: 0` because the hallway KAJPLATS rejects the Hue Bridge's default off (see docs/SMART_HOME_PLAN.md 1.5). fw 0.7.1-scenes |
 
 ## 11. Open items & roadmap
 
@@ -190,7 +191,7 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 - [x] Raspberry Pi: Pi 4 B, 4 GB — HAOS 18.1 running (2026-07-23)
 - [x] SD card: swapped to 32 GB Intenso 2026-07-24; add-ons unblocked
 - [ ] AMP retry (pre-M3): days of cool-down first; region field must read amazon.de (console trace showed amazon.com marketplace ID — recheck on retry); try different browser (WebAuthn `getClientCapabilities` TypeError in proxy); last resort Amazon support to clear the sign-in flag. 2FA already configured |
-- [ ] 4 scene names + moods — co-design with co-resident
+- [x] 4 scene names + moods (2026-09-30, §10) — co-resident pass on the moods still open
 - [x] Board jumper variant: relay (GPIO40 click test, 2026-07-24) — no speaker, §5.14 = visual pulse only
 
 **Roadmap (v2+):** LD2410 presence sensor (sleep-until-someone's-there), one-tap timer presets, KVB departures (unofficial API), provisioning portal + OTA, enclosure/stand (3D print), ambient-light sensor for true Ambient EQ.

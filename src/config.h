@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#define KACHEL_FW_VERSION "0.7.0-link"
+#define KACHEL_FW_VERSION "0.7.1-scenes"
 
 // --- schedule (SPEC §5.12; all times configurable here) ---
 // Valid ranges (M5 audit): the schedule state machine assumes the order
