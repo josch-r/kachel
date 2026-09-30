@@ -33,15 +33,15 @@ One physical room of the flat: Flur, Wohnzimmer, Küche, Büro or Schlafzimmer. 
 _Avoid_: area, Bereich, zone, furniture names as rooms (e.g. "Josch's Schreibtisch")
 
 **Resident**:
-One of the two people who live in the flat. Both are tracked, and both count equally for Arrival.
+One of the two people who live in the flat. Both count equally; nothing in the home works for only one of them.
 _Avoid_: user, owner
 
-**Arrival**:
-A Resident's phone joins the home WLAN.
-_Avoid_: presence, geofence, coming home
+**Presence**:
+Someone is in a Room right now, as reported by that Room's sensor. It says nothing about who.
+_Avoid_: motion, occupancy, Arrival
 
 **Dark**:
-The sun is less than 3° above the horizon.
+The sun is less than 3° above the horizon at the flat's location. It is computed by the Brain, never measured by a sensor.
 _Avoid_: night, evening, sunset
 
 ### Tile

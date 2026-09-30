@@ -6,6 +6,35 @@ Die Begriffe stehen in [CONTEXT.md](../CONTEXT.md), die Thread-Entscheidung in [
 **Legende:** **[Du]** = physisch, Logins, Apps, Käufe. **[Claude]** = per HA-API, du gibst frei.
 Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abweichen.
 
+## Übergabe für den nächsten Agenten
+
+**Stand 2026-09-30:** Alle Entscheidungen sind getroffen und unten dokumentiert. In Home Assistant wurde noch **nichts geändert**; die Session hat nur gelesen. Es geht ans Umsetzen.
+
+**Es wartet auf Josch:**
+- ESP-Teile bestellen (Einkaufsliste).
+- Flurbirne per Touchlink an die Hue Bridge koppeln (1.1). Der erste Versuch am 2026-09-29 hat nicht geklappt, die App fand die Birne nicht.
+- Phase 0: Schritte 0.1, 0.2, 0.3, 0.5, 0.6 und der Hue-Teil von 0.4.
+- Wohnort in HA prüfen (Einstellungen → System → Allgemein), weil `sun.sun` daraus rechnet. Das konnte nicht per API geprüft werden.
+
+**Es wartet auf den Agenten** (jeder Schreibzugriff auf HA erst nach Joschs Go):
+1. 0.4: Bereich „Flur“ anlegen, Schreibi nach „Büro“, Bereich „Josch's Schreibtisch“ löschen.
+2. 1.2: Sobald die Flurbirne in HA auftaucht, die Entity in `light.flur` umbenennen, Bereich „Flur“. Die Szenen `kachel_s1` und `kachel_s2` um `light.flur` und `light.buro_frau_marschik` erweitern.
+3. 2.2: ESPHome-Konfiguration für den Flur-Sensor schreiben, sobald die Teile da sind.
+4. 2.4: Die Automation anlegen. Der Entity-Name `binary_sensor.flur_praesenz` ist angenommen und muss zur ESPHome-Konfiguration passen.
+
+**Zugang zu HA:**
+- `http://192.168.178.77:8123`, nur aus dem Heimnetz erreichbar. Token in `.kachel/ha_token` (gitignored).
+- Zum Lesen hat sich `curl` mit `POST /api/template` bewährt. Python-`urllib` ist einmal mit „No route to host“ gescheitert, während `curl` lief.
+- MQTT-Broker auf demselben Host, Zugangsdaten in `include/secrets.h`. Die Kachel meldet sich auf `kachel/sys/status`.
+
+**Fallen:**
+- **`ha/setup_m2.py` nicht einfach neu ausführen.** Die Entity-IDs im Skript sind Platzhalter. Ein Lauf überschreibt die echten Szenen und Automationen in HA. Live enthalten `kachel_s1` und `kachel_s2`: `switch.oma`, `switch.kuche`, `switch.schreibi`, `switch.doni`, `light.limette`.
+- Szenen-Entity-IDs weichen von den Konfig-IDs ab: `kachel_s1` heißt in HA `scene.kachel_1_alles_an`, `kachel_s2` heißt `scene.kachel_2_alles_aus`.
+- Tapo-P100-Firmware nicht aktualisieren (siehe Ist-Stand).
+- Frau Marschik erscheint in HA ohne Hersteller und mit Firmware „0.0.0“. Das ist bei einer per Touchlink gekoppelten KAJPLATS normal.
+- Das Repo ist öffentlich. Die zweite Bewohnerin wird in der Doku nicht namentlich genannt.
+- Der Matter-Server in HA läuft, hat aber noch keine Geräte.
+
 ## Zielbild
 
 | Rolle | Wer | Aufgabe |
@@ -44,7 +73,6 @@ Preise geschätzt.
 | Teil | ca. | Wofür | Stand |
 |---|---|---|---|
 | HLK-LD2410C (Radar-Präsenzsensor, 2,54-mm-Stiftleiste) | 4 € | Flur-Sensor (Phase 2) | entschieden |
-| BH1750 (Lichtsensor) | 2 € | Flur-Sensor: misst die Helligkeit | entschieden |
 | ESP32-C3 | 4 € | Flur-Sensor | entschieden |
 | ESP32-C3 (kein ESP8266, wegen Bluetooth) | 4 € | Velux-Fernbedienung, Bluetooth-Proxy | empfohlen |
 | BME280 (Temperatur, Feuchte) | 3 € | Schlafzimmer, am Velux-ESP | empfohlen |
@@ -77,22 +105,7 @@ Tipp: Im Update-Dialog das Häkchen „Backup erstellen“ setzen. Das ist eine 
 ### 0.5 HACS-Reste entfernen [Du]
 HACS → „Alexa Media Player“ → ⋮ → Entfernen. Dasselbe für „Velux Active with Netatmo“. Danach HA neu starten.
 
-### 0.6 Arrival einrichten [Du]
-1. **Beide iPhones:** Einstellungen → WLAN → (i) neben dem Heim-WLAN → Private WLAN-Adresse → **Fest**.
-2. **Fritz!Box:**
-   - System → FRITZ!Box-Benutzer → Benutzer hinzufügen, zum Beispiel `homeassistant`, mit dem Recht „FRITZ!Box Einstellungen“.
-   - Heimnetz → Netzwerk → Netzwerkeinstellungen: „Zugriff für Anwendungen zulassen“ und „Statusinformationen über UPnP übertragen“ einschalten.
-3. **HA:** Einstellungen → Geräte & Dienste → Integration hinzufügen → „AVM FRITZ!Box Tools“ → Host `192.168.178.1`, Benutzer und Passwort aus Schritt 2 eintragen.
-   Unter Optionen „Als abwesend betrachten nach“ auf **600 s** stellen.
-4. **HA:** Einstellungen → Personen → Person hinzufügen (zweiter Resident), „Anmelden erlauben“ aktivieren.
-5. **Beide iPhones:** App **„Home Assistant“** aus dem App Store installieren.
-   - Server: `http://192.168.178.77:8123`
-   - Standort: „Immer“ und „Genau“
-6. **HA:** Einstellungen → Personen → jede Person → „Zu verfolgende Geräte“. Dort den Fritz!Box-Tracker des iPhones **und** den App-Tracker hinzufügen.
-
-**Prüfen:** Einstellungen → Personen. Beide Personen stehen auf „Zuhause“.
-
-### 0.7 Alexa-Gruppen pro Room [Du]
+### 0.6 Alexa-Gruppen pro Room [Du]
 Alexa-App → Geräte → + → Gruppe hinzufügen. Gruppen **Wohnzimmer**, **Küche**, **Büro** und **Flur** mit den passenden Geräten anlegen.
 
 ---
@@ -116,38 +129,9 @@ Dieser Weg hat bei Frau Marschik funktioniert. Die BILRESA-Fernbedienung funktio
 ### 1.3 Alexa [Du]
 „Alexa, suche neue Geräte“. Die Lampe kommt über die Hue-Verbindung von Alexa. Danach den Flur in die Alexa-Gruppe **Flur** aufnehmen.
 
-### 1.4 Automation: Arrival im Dunkeln [Claude]
-Voraussetzung: 0.6 ist erledigt.
-```yaml
-alias: "Flur: Licht bei Ankunft im Dunkeln"
-mode: restart
-triggers:
-  - trigger: state
-    entity_id:
-      - person.joschua_rothenbacher
-      - person.<zweite_person>
-    to: home
-conditions:
-  - condition: numeric_state          # Dark = Sonne < 3° über dem Horizont
-    entity_id: sun.sun
-    attribute: elevation
-    below: 3
-  - condition: state                  # nicht ausschalten, was jemand schon angemacht hat
-    entity_id: light.flur
-    state: "off"
-actions:
-  - action: light.turn_on
-    target: { entity_id: light.flur }
-    data: { brightness_pct: 70, color_temp_kelvin: 2700 }
-  - delay: "00:10:00"
-  - action: light.turn_off
-    target: { entity_id: light.flur }
-```
-
-### 1.5 Abnahme [Du]
+### 1.4 Abnahme [Du]
 - [ ] Der Flur lässt sich über HA, Alexa und die Kachel („Alles an“/„Alles aus“) schalten und dimmen.
 - [ ] Lampenschalter aus, 10 s warten, wieder an → das Licht brennt und ist innerhalb von ca. 1 Minute in HA wieder erreichbar.
-- [ ] Ankommen in der Dämmerung → Flurlicht geht an, nach 10 Minuten wieder aus. Einmal mit jedem iPhone testen.
 
 **Wenn An/Aus nicht funktioniert** (bei einigen Nutzern bekannt): die Birne in der Hue-App löschen, 6-mal aus- und einschalten (Reset, sie blinkt warmweiß), 10 s warten, dann 1.1 mit 12 oder 15 Zyklen wiederholen.
 
@@ -165,19 +149,71 @@ Im Flur ist eine Steckdose vorhanden. Der Sensor läuft im WLAN und braucht kein
 | TX | freier GPIO als RX |
 | RX | freier GPIO als TX |
 
-BH1750: VCC → 3V3, GND → GND, SDA und SCL an zwei freie GPIOs (I²C).
 Der Radar braucht 5 V Versorgung, seine Datenpins arbeiten mit 3,3 V. UART-Geschwindigkeit: 256000 Baud.
 
 ### 2.2 Firmware [Claude + Du]
 - [Du] HA → Apps → „ESPHome Device Builder“ installieren.
-- [Claude] ESPHome-Konfiguration schreiben: `ld2410` (Präsenz), `bh1750` (Lux), feste IP.
+- [Claude] ESPHome-Konfiguration schreiben: `ld2410` (Präsenz), feste IP.
 - [Du] Einmal per USB flashen, danach Updates über WLAN. Das Gerät in HA dem Bereich **Flur** zuordnen.
 
 ### 2.3 Einstellen [Du]
 Der Radar sieht durch dünne Türen und Trockenbauwände. In der App „HLKRadarTool“ (Bluetooth) die Reichweite so weit verringern, dass Bewegung im Nachbarraum nicht mehr auslöst.
 
-### 2.4 Automation: Licht bei Präsenz [Claude]
-Regeln sind noch offen: Helligkeit tags und nachts, Nachlaufzeit, Verhältnis zur Arrival-Automation (1.4).
+### 2.4 Automation: Licht bei Präsenz im Dunkeln [Claude]
+Der Sensor meldet nur, ob jemand im Flur ist. Ob es Dark ist, entscheidet das Brain aus dem Sonnenstand am Wohnort (`sun.sun`), nicht aus einer Messung. Der Flur hat kein Fenster; einen Lichtsensor gibt es bewusst nicht. Tagsüber bleibt das Licht aus.
+
+Vor dem Bau prüfen: Einstellungen → System → Allgemein. Der Wohnort in HA muss stimmen, sonst rechnet `sun.sun` falsch.
+
+Alle Zahlen sind Startwerte und werden vor Ort nachgestellt: Schwelle 3°, 70 % / 10 %, Nachtfenster 22–6 Uhr, Nachlauf 2 Minuten.
+```yaml
+alias: "Flur: Licht bei Präsenz im Dunkeln"
+mode: restart
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.flur_praesenz
+    to: "on"
+    id: kommt
+  - trigger: state
+    entity_id: binary_sensor.flur_praesenz
+    to: "off"
+    for: "00:02:00"
+    id: geht
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: kommt
+          - condition: numeric_state      # Dark = Sonne < 3° über dem Horizont
+            entity_id: sun.sun
+            attribute: elevation
+            below: 3
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: time       # Nacht, wie der Nachtmodus der Kachel
+                    after: "22:00:00"
+                    before: "06:00:00"
+                sequence:
+                  - action: light.turn_on
+                    target: { entity_id: light.flur }
+                    data: { brightness_pct: 10, color_temp_kelvin: 2200 }
+            default:
+              - action: light.turn_on
+                target: { entity_id: light.flur }
+                data: { brightness_pct: 70, color_temp_kelvin: 2700 }
+      - conditions:
+          - condition: trigger
+            id: geht
+        sequence:
+          - action: light.turn_off
+            target: { entity_id: light.flur }
+```
+
+### 2.5 Abnahme [Du]
+- [ ] Abends in den Flur gehen → Licht geht mit 70 % an, zwei Minuten nach dem Verlassen wieder aus.
+- [ ] Nach 22 Uhr → Licht geht mit 10 % an.
+- [ ] Tagsüber → Licht bleibt aus.
+- [ ] Bewegung im Nachbarraum bei geschlossener Tür löst nicht aus.
 
 ---
 
@@ -205,6 +241,7 @@ Einrichtung mit dem ESP32-C6:
 Mit dem ZBT-2 entfallen Schritt 1 und 3: HA erkennt den Stick unter „Entdeckt“, dort **Thread** wählen.
 
 ## Später
+- **„Niemand zu Hause → Alles aus“:** braucht die Erkennung per Handy (Fritz!Box-Integration plus Companion-App auf beiden iPhones, „Private WLAN-Adresse“ auf „Fest“). Für das Flurlicht ist sie nicht nötig, das macht der Präsenzsensor.
 - **Stimmungs-Scenes** für Slot 3 und 4, gemeinsam festlegen.
 - **Velux (Schlafzimmer, ein Fenster mit Außenrollladen):** Das Fenster selbst öffnet nicht motorisch. Die Fernbedienung hat drei echte Tasten (Modell noch ablesen, vermutlich KLI 310–313). Budget: höchstens 10 €.
   - Weg: die drei Tasten an einen ESP32-C3 anlöten, der sie per ESPHome „drückt“. Fünf Drähte: 3 V, Masse, Auf, Zu, Stopp.
