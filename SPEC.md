@@ -51,7 +51,7 @@ Weiser's one-line test governs every element: **it must inform from the peripher
 3. **Abstract before display:** derived states ("air good", "rain later"), not raw feeds. Peripheral encoding via pre-attentive channels only: hue, position, fill-level, brightness.
 4. **One hue = one meaning, forever.** Hue table in §6. Saturation is alert currency — resting palette stays desaturated/warm.
 5. **Escalation ladder:** info = silent static change → notable = slow fade-in accent → needs-you-soon = gentle periodic pulse → urgent (timer done; rare) = one motion+sound event, then self-decay. Everything below urgent is ignorable indefinitely. Nothing nags.
-6. **Fail calm:** on WiFi/backend loss show clock + last-known data with a subtle staleness mark. Never a full-screen error, never a visible reboot.
+6. **Fail calm:** on WiFi/backend loss show clock + last-known data with a subtle staleness mark. Never a full-screen error, never a visible reboot. Control layers (Lights, Air) additionally carry a link mark: dim ring while connected; after 10 s down it becomes an "Offline · N min" pill, controls dim and ignore taps (offline taps are dropped, never replayed). Tapping the mark opens a diagnostics card (§10 2026-09-29).
 
 ### Motion rules
 7. Resting motion: none, or sub-perceptual breathing ≤ **6–10 cycles/min**.
@@ -180,6 +180,7 @@ Each milestone ends with evidence (build log, on-device photo/video from Josch, 
 | Face v2 "Three Strata" (2026-07-25) | Josch-approved redesign (research council + colorist/hardware-critic experts): field/mark/slot strata, daypart engine, absolute weather band + veil, droplets + temp/precip text line, Doto+Departure Mono typography (NDot legally unusable), palette per docs/DESIGN_PALETTE_V2.md. Contract: weather gains `precip_start_h` (first forecast hour with precip >0.1 mm, −1 none) for the text line. v1 face + Inter Tight 176 retire |
 | Slot: next event always (2026-07-25) | Josch after first live day: slot shows the next upcoming event permanently (today/Morgen/weekday prefix), replacing the 2 h day-window + evening tomorrow-first rules. Rush leave-by and timer preemption unchanged. Empty slot now = nothing within 48 h |
 | Calendar horizon 2 weeks (2026-07-26) | Josch: HA window 48 h → 336 h. Events >6 days out show a date ("DD.MM."); all-day events (date-only starts, previously dropped by the parser) now parse to local midnight, render without a time, and persist to end of day |
+| Link mark on control layers (2026-09-29) | Josch after a Pi outage left scene taps silently dead (and queued: they would have fired on reconnect, possibly hours later). Lights + Air gain a link mark — hollow dim ring while the broker is up (hollow so it never reads as a §5.6 staleness dot); down ≥10 s (`KACHEL_T_OFFLINE_GRACE_MS`) → "Offline · N min" pill, controls 40 % opacity + disabled. Commands are dropped while offline; queue is flushed on reconnect. Tap mark → diagnostics card (WiFi SSID/RSSI/IP, broker host, up/down since, last PubSubClient rc + retry count, topic ages, fw/uptime); tap card or leave layer closes it. Face + Household unchanged (staleness dots only). fw 0.7.0-link |
 
 ## 11. Open items & roadmap
 

@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
+#include <atomic>
 
 #include "../include/secrets.h"
 #include "config.h"
@@ -26,6 +27,30 @@ static const topic_spec topic_specs[KACHEL_TOPIC_COUNT] = {
 
 static kachel_state states[KACHEL_TOPIC_COUNT];
 static SemaphoreHandle_t states_lock;
+
+// link diagnostics: written by the MQTT task under states_lock; the atomic
+// flag gates command enqueue from the UI thread without taking the lock
+static kachel_link link_info;
+static std::atomic<bool> broker_up{false};
+
+static void set_link_up(bool up, int rc)
+{
+    xSemaphoreTake(states_lock, portMAX_DELAY);
+    if (link_info.broker_up != up)
+        link_info.changed_ms = millis();
+    link_info.broker_up = up;
+    if (up)
+    {
+        link_info.ever_connected = true;
+        link_info.failed_tries = 0;
+    }
+    else
+    {
+        link_info.last_rc = rc;
+    }
+    xSemaphoreGive(states_lock);
+    broker_up = up;
+}
 
 // commands cross from the UI thread to the MQTT task via queue —
 // PubSubClient is not thread-safe
@@ -80,6 +105,8 @@ static void try_connect()
     {
         connect_backoff_ms = 5000;
         next_status_ms = millis() + 60000;
+        xQueueReset(cmd_queue); // nothing queued before the link came up may fire now
+        set_link_up(true, 0);
         log_i("MQTT connected");
         mqtt.subscribe("kachel/state/+");
         publish_status();
@@ -88,6 +115,10 @@ static void try_connect()
     {
         // fail calm: back off, retry silently; staleness marks carry the news
         connect_backoff_ms = min(connect_backoff_ms * 2, (uint32_t)60000);
+        set_link_up(false, mqtt.state());
+        xSemaphoreTake(states_lock, portMAX_DELAY);
+        link_info.failed_tries++;
+        xSemaphoreGive(states_lock);
         log_w("MQTT connect failed rc=%d, retry in %lu s", mqtt.state(), connect_backoff_ms / 1000);
     }
 }
@@ -103,6 +134,11 @@ void mqtt_tick()
     }
     if (!mqtt.connected())
     {
+        if (broker_up)
+        {
+            log_w("MQTT link dropped rc=%d", mqtt.state());
+            set_link_up(false, mqtt.state());
+        }
         if ((int32_t)(now - next_connect_ms) >= 0)
         {
             next_connect_ms = now + connect_backoff_ms;
@@ -141,7 +177,27 @@ void mqtt_begin()
 
 bool mqtt_connected()
 {
-    return mqtt.connected();
+    return broker_up;
+}
+
+kachel_link mqtt_link()
+{
+    xSemaphoreTake(states_lock, portMAX_DELAY);
+    kachel_link copy = link_info;
+    xSemaphoreGive(states_lock);
+    return copy;
+}
+
+// a queued command would fire whenever the broker returns — possibly hours
+// later ("Alles an" at 3 am). Offline taps are dropped instead.
+static void send_cmd(const cmd_msg &m)
+{
+    if (!broker_up)
+    {
+        log_w("%s %s dropped: broker down", m.topic, m.payload);
+        return;
+    }
+    xQueueSend(cmd_queue, &m, 0);
 }
 
 void mqtt_cmd_scene(uint8_t id)
@@ -149,7 +205,7 @@ void mqtt_cmd_scene(uint8_t id)
     cmd_msg m;
     strlcpy(m.topic, "kachel/cmd/scene", sizeof(m.topic));
     snprintf(m.payload, sizeof(m.payload), "{\"id\":%u}", id);
-    xQueueSend(cmd_queue, &m, 0);
+    send_cmd(m);
 }
 
 void mqtt_cmd_air(uint8_t fan)
@@ -157,7 +213,7 @@ void mqtt_cmd_air(uint8_t fan)
     cmd_msg m;
     strlcpy(m.topic, "kachel/cmd/air", sizeof(m.topic));
     snprintf(m.payload, sizeof(m.payload), "{\"fan\":%u}", fan);
-    xQueueSend(cmd_queue, &m, 0);
+    send_cmd(m);
 }
 
 void mqtt_cmd_air_auto()
@@ -165,7 +221,7 @@ void mqtt_cmd_air_auto()
     cmd_msg m;
     strlcpy(m.topic, "kachel/cmd/air", sizeof(m.topic));
     strlcpy(m.payload, "{\"mode\":\"auto\"}", sizeof(m.payload));
-    xQueueSend(cmd_queue, &m, 0);
+    send_cmd(m);
 }
 
 const kachel_state *mqtt_state(kachel_topic topic)

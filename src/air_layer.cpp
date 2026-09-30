@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "config.h"
+#include "conn_status.h"
 #include "mqtt_client.h"
 #include "palette.h"
 #include "state_model.h"
@@ -205,6 +206,9 @@ void air_layer_init(lv_obj_t *tile)
 
         lv_obj_add_event_cb(btn, fan_pressed, LV_EVENT_CLICKED, (void *)(uintptr_t)i);
     }
+
+    // link mark top-center, between PM2.5 and filter, level with the filter line
+    conn_status_attach(tile, LV_ALIGN_CENTER, 0, -184, fan_btns, FAN_SEGMENTS);
 
     lv_timer_create(refresh, KACHEL_T_LAYER_POLL_MS, nullptr);
 }

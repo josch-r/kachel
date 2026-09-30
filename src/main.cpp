@@ -6,6 +6,7 @@
 #include "air_layer.h"
 #include "ambient_face.h"
 #include "carousel.h"
+#include "config.h"
 #include "display.h"
 #include "household_layer.h"
 #include "lights_layer.h"
@@ -36,6 +37,9 @@ void setup()
 
     smartdisplay_init();
     fix_gt911_scaling();
+#if KACHEL_ROTATE_180
+    lv_display_set_rotation(lv_display_get_default(), LV_DISPLAY_ROTATION_180);
+#endif
     carousel_create();
     ambient_face_init(carousel_tile(KACHEL_LAYER_AMBIENT_FACE));
     lights_layer_init(carousel_tile(KACHEL_LAYER_LIGHTS));

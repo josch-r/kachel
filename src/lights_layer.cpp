@@ -1,5 +1,6 @@
 #include "lights_layer.h"
 
+#include "conn_status.h"
 #include "mqtt_client.h"
 #include "palette.h"
 #include "timing.h"
@@ -22,9 +23,11 @@ void lights_layer_init(lv_obj_t *tile)
     lv_style_transition_dsc_init(&trans, props, lv_anim_path_ease_out,
                                  KACHEL_T_FEEDBACK_MS, 0, nullptr);
 
+    lv_obj_t *btns[4];
     for (int i = 0; i < 4; i++)
     {
         auto btn = lv_button_create(tile);
+        btns[i] = btn;
         lv_obj_set_size(btn, 208, 208);
         lv_obj_align(btn, LV_ALIGN_CENTER, (i % 2) ? 112 : -112, (i / 2) ? 112 : -112);
         lv_obj_set_ext_click_area(btn, 12); // §4 invisible hit-area expansion
@@ -47,4 +50,7 @@ void lights_layer_init(lv_obj_t *tile)
         // CLICKED = press released inside target — §4 completion-only trigger
         lv_obj_add_event_cb(btn, scene_pressed, LV_EVENT_CLICKED, (void *)(uintptr_t)i);
     }
+
+    // link mark sits in the grid's center gap
+    conn_status_attach(tile, LV_ALIGN_CENTER, 0, 0, btns, 4);
 }

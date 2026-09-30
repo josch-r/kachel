@@ -33,3 +33,6 @@ constexpr uint32_t KACHEL_T_FACE_TICK_MS = 250;
 constexpr uint32_t KACHEL_T_LAYER_POLL_MS = 1000;
 // carousel snap (programmatic return-home ride; swipe throw is indev-owned)
 constexpr uint32_t KACHEL_T_SNAP_MS = KACHEL_T_TRANSITION_MS;
+// broker-down grace before the control layers show the offline mark:
+// rides out a reconnect blip (first retry fires after 5 s) without flicker
+constexpr uint32_t KACHEL_T_OFFLINE_GRACE_MS = 10000;

@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#define KACHEL_FW_VERSION "0.6.0-face2"
+#define KACHEL_FW_VERSION "0.7.0-link"
 
 // --- schedule (SPEC §5.12; all times configurable here) ---
 // Valid ranges (M5 audit): the schedule state machine assumes the order
@@ -19,6 +19,12 @@ constexpr int KACHEL_RAMP_MINUTES = 30;         // gradual ramp length from 22:0
 // brightness scale
 constexpr float KACHEL_BRIGHT_DAY = 1.0f;
 constexpr float KACHEL_BRIGHT_NIGHT = 0.01f; // ultra-dim floor (min PWM duty 1%)
+
+// --- mounting ---
+// 1 = panel mounted upside down (USB-C on top); LVGL rotates the frame in
+// the flush path (board uses DISPLAY_SOFTWARE_ROTATION) and rotates touch
+// points to match (lv_indev -> lv_display_rotate_point, AGENTS rule 3)
+#define KACHEL_ROTATE_180 1
 
 // --- interaction (SPEC §4) ---
 constexpr uint32_t KACHEL_IDLE_RETURN_MS = 20000; // 20 s, spec range 10-30 s
