@@ -1,5 +1,5 @@
 ---
-status: accepted (radio deferred to backlog 2026-09-29; XIAO ESP32-C6 radio live 2026-10-11, two-week trial)
+status: accepted (radio deferred to backlog 2026-09-29; XIAO ESP32-C6 radio live 2026-10-11, two-week trial; both KAJPLATS on Thread and Hue Bridge retired the same day)
 ---
 
 # The Brain owns the flat's only Thread network

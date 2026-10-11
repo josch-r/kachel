@@ -41,7 +41,7 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 |---|---|---|
 | Brain | Home Assistant (Pi 4, LAN, .77) | Hält alle Logik: Szenen, Zeitpläne, Automationen |
 | Voice channel | Alexa (Echo Dot 3) | Darf schalten, hält keine Logik |
-| Radio bridge | Hue Bridge v2 | Zigbee-Funk, auch für die IKEA-Birnen im Zigbee-Modus |
+| Radio bridge | ~~Hue Bridge v2~~ | Seit 2026-10-11 außer Betrieb: Beide KAJPLATS laufen über Thread, die Hue-Integration ist aus HA gelöscht |
 | Thread radio | XIAO ESP32-C6 (Test), sonst HA Connect ZBT-2 | **Live seit 2026-10-11** im Zwei-Wochen-Test (bis 2026-10-25) |
 | Failsafe | Schalter an der Lampe / Knopf am Stecker | Funktioniert ohne Brain |
 
@@ -60,7 +60,7 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 | Flurlicht | IKEA KAJPLATS E27 CWS, Matter over Thread (fw 1.2.0) | Flur | Thread → HA (`light.flur`) | seit 2026-10-11 auf Thread, normales Aus funktioniert (1.5). Alter Hue-Eintrag als `light.flur_hue_alt` deaktiviert |
 | Luftreiniger | Levoit Core 300S | Wohnzimmer | VeSync-Cloud → HA | ok |
 | Kachel | ESP32-S3, fw 0.7.1-scenes | Küche | MQTT → .77 | ok |
-| Hue Bridge | BSB002 (.38) | – | LAN | ok |
+| Hue Bridge | BSB002 (.38) | – | LAN | außer Betrieb seit 2026-10-11, kann abgesteckt werden |
 | Router | FRITZ!Box 7682, FRITZ!OS 8.25 | – | – | kein Zigbee/Thread, kein Repeater |
 
 HA: Core 2026.7.4 (2026.9.4 verfügbar), HAOS 18.3, Matter Server 9.2 (läuft, noch ohne Geräte).
@@ -232,7 +232,7 @@ actions:
 ---
 
 ## Thread radio
-**Stand 2026-10-11:** Live. XIAO ESP32-C6 mit eingebauter Antenne (keine externe vorhanden) am Pi, OTBR-App 3.3.0, HA-Netz `ha-thread-ce3a` auf Kanal 15, als bevorzugtes Netz gesetzt. Vorgezogen, weil das Flurlicht im Zigbee-Modus nach dem Stromausfall nicht mehr erreichbar war (siehe 1.5). Beide KAJPLATS sind am selben Tag umgezogen (Companion-App, QR-Code an der Birne). **Alexa** sieht sie seitdem nicht mehr, weil sie nicht mehr über den Hue-Skill laufen. Weg zurück: `emulated_hue` (ADR 0001). Firmware bauen und flashen: `thread_rcp/build.sh <port>`.
+**Stand 2026-10-11:** Live. XIAO ESP32-C6 mit eingebauter Antenne (keine externe vorhanden) am Pi, OTBR-App 3.3.0, HA-Netz `ha-thread-ce3a` auf Kanal 15, als bevorzugtes Netz gesetzt. Vorgezogen, weil das Flurlicht im Zigbee-Modus nach dem Stromausfall nicht mehr erreichbar war (siehe 1.5). Beide KAJPLATS sind am selben Tag umgezogen (Companion-App, QR-Code an der Birne). **Alexa** bekommt sie über `emulated_hue` (Port 80, nur `light.flur` und `light.kuchenglas`, `expose_by_default: false`). Der Block steht in `/homeassistant/configuration.yaml` auf dem Pi, nicht im Repo. Firmware bauen und flashen: `thread_rcp/build.sh <port>`.
 
 **Erst testen: ESP32-C6 (ca. 5–10 €).** Ein Board mit Antennenanschluss nehmen, zum Beispiel XIAO ESP32-C6. Firmware: Espressifs OpenThread RCP aus dem esp-idf. Das busware-Projekt „esp-coordinator“ ist Zigbee-Firmware und passt hier nicht.
 **Abbruchkriterium:** Läuft der C6 zwei Wochen stabil und erreicht er die Küche, bleibt er. Sonst wird der **ZBT-2** gekauft (ca. 65 € inkl. USB-Verlängerung), und die Thread-Geräte werden neu eingebunden.
@@ -242,7 +242,7 @@ Was dann möglich wird:
 - **BILRESA-Fernbedienung** wieder nutzbar, über eine HA-Automation.
 - **Die beiden KAJPLATS** auf Thread umziehen (Reset mit 6 Zyklen, dann per Matter-QR-Code). Dann gibt es wieder Firmware-Updates.
 - **Die Hue Bridge ablösen,** sobald kein Zigbee-Gerät mehr übrig ist.
-- **`emulated_hue`** für Geräte, die nur HA kennt, mit fester Geräteliste (siehe ADR 0001).
+- ~~`emulated_hue`~~ läuft seit 2026-10-11. Neue Geräte, die nur HA kennt, in der `entities:`-Liste in `configuration.yaml` ergänzen, dann HA neu starten und „Alexa, suche neue Geräte“ sagen.
 
 Einrichtung mit dem ESP32-C6:
 1. OpenThread-RCP-Firmware flashen: `thread_rcp/build.sh <port>` (ESP-IDF v6.0-beta1, USB statt UART, eigener Patch gegen Hänger bei kurzen USB-Writes). Der Firmware-Stand muss zur OTBR-App passen, sonst gibt es Timeouts. Nach OTBR-Updates prüfen, ggf. neu bauen.
