@@ -56,8 +56,8 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 | Oma | Tapo P100 (.57) | Wohnzimmer | WLAN → HA | ausgesteckt |
 | Küche | Tapo P100 (.58) | Küche | WLAN → HA | fällt am Küchenplatz aus (WLAN-Empfang), steht derzeit neben der Fritz!Box |
 | Limette | Tapo L610 (.56) | Wohnzimmer | WLAN → HA | ok, **Auto-Update an** |
-| Küchenglas | IKEA KAJPLATS, Zigbee-Modus | Küche (über der Küchenzeile) | Hue Bridge → HA (`light.kuchenglas`) | läuft stabil (2 Wochen Verlauf geprüft). In Hue heißt sie noch „Frau Marschik“ im Raum „Büro“; in HA und Alexa ist sie umbenannt (2026-09-30) |
-| Flurlicht | IKEA KAJPLATS E27 Farbe+Weiß | Flur | Hue Bridge → HA (`light.flur`) | Aus über die Bridge klappt nicht, HA fängt es ab (1.5) |
+| Küchenglas | IKEA KAJPLATS E14 CWS, Matter over Thread (fw 1.1.0) | Küche (über der Küchenzeile) | Thread → HA (`light.kuchenglas`) | seit 2026-10-11 auf Thread. Alter Hue-Eintrag „Frau Marschik“ in HA als `light.kuchenglas_hue_alt` deaktiviert, bis er in der Hue-App gelöscht ist |
+| Flurlicht | IKEA KAJPLATS E27 CWS, Matter over Thread (fw 1.2.0) | Flur | Thread → HA (`light.flur`) | seit 2026-10-11 auf Thread, normales Aus funktioniert (1.5). Alter Hue-Eintrag als `light.flur_hue_alt` deaktiviert |
 | Luftreiniger | Levoit Core 300S | Wohnzimmer | VeSync-Cloud → HA | ok |
 | Kachel | ESP32-S3, fw 0.7.1-scenes | Küche | MQTT → .77 | ok |
 | Hue Bridge | BSB002 (.38) | – | LAN | ok |
@@ -135,7 +135,9 @@ Dieser Weg hat beim Küchenglas (damals „Frau Marschik“) funktioniert. Die B
 
 **Wenn An/Aus nicht funktioniert** (bei einigen Nutzern bekannt): die Birne in der Hue-App löschen, 6-mal aus- und einschalten (Reset, sie blinkt warmweiß), 10 s warten, dann 1.1 mit 12 oder 15 Zyklen wiederholen.
 
-### 1.5 Stand Flurlicht (2026-09-30)
+### 1.5 Stand Flurlicht (2026-09-30, erledigt 2026-10-11)
+**Erledigt:** Seit 2026-10-11 laufen Flurlicht und Küchenglas als Matter-over-Thread-Geräte (siehe Abschnitt Thread radio). Dort bleibt ein normales `light.turn_off` aus, getestet. Die Automation `flur_off_bounce_guard` ist gelöscht. Die `transition: 0` in den Kachel-Szenen schadet nicht und bleibt. Der Rest dieses Abschnitts ist die Vorgeschichte.
+
 - **Symptom:** Aus über Hue-App, Alexa oder HA ohne Transition → die Bridge meldet kurz „aus“, nach 1–2 s ist die Birne wieder an. Dimmen geht.
 - **Vermutete Ursache** (nicht mitgeschnitten): Die Bridge schaltet mit „Off with effect“ (ZCL 0x40) aus ([Z2M #15765](https://github.com/Koenkk/zigbee2mqtt/discussions/15765)). KAJPLATS im Zigbee-Modus lehnt das mit INSUFFICIENT_SPACE ab, wenn ihr Szenen-Speicher auf 0 gefallen ist ([Z2M #30211](https://github.com/Koenkk/zigbee2mqtt/issues/30211)).
 - **Mit Transition geht es:** `light.turn_off` mit `transition: 0` bleibt aus, von Josch vor Ort bestätigt.
@@ -230,7 +232,7 @@ actions:
 ---
 
 ## Thread radio
-**Stand 2026-10-11:** Live. XIAO ESP32-C6 mit eingebauter Antenne (keine externe vorhanden) am Pi, OTBR-App 3.3.0, HA-Netz `ha-thread-ce3a` auf Kanal 15, als bevorzugtes Netz gesetzt. Vorgezogen, weil das Flurlicht im Zigbee-Modus nach dem Stromausfall nicht mehr erreichbar war (siehe 1.5). Firmware bauen und flashen: `thread_rcp/build.sh <port>`.
+**Stand 2026-10-11:** Live. XIAO ESP32-C6 mit eingebauter Antenne (keine externe vorhanden) am Pi, OTBR-App 3.3.0, HA-Netz `ha-thread-ce3a` auf Kanal 15, als bevorzugtes Netz gesetzt. Vorgezogen, weil das Flurlicht im Zigbee-Modus nach dem Stromausfall nicht mehr erreichbar war (siehe 1.5). Beide KAJPLATS sind am selben Tag umgezogen (Companion-App, QR-Code an der Birne). **Alexa** sieht sie seitdem nicht mehr, weil sie nicht mehr über den Hue-Skill laufen. Weg zurück: `emulated_hue` (ADR 0001). Firmware bauen und flashen: `thread_rcp/build.sh <port>`.
 
 **Erst testen: ESP32-C6 (ca. 5–10 €).** Ein Board mit Antennenanschluss nehmen, zum Beispiel XIAO ESP32-C6. Firmware: Espressifs OpenThread RCP aus dem esp-idf. Das busware-Projekt „esp-coordinator“ ist Zigbee-Firmware und passt hier nicht.
 **Abbruchkriterium:** Läuft der C6 zwei Wochen stabil und erreicht er die Küche, bleibt er. Sonst wird der **ZBT-2** gekauft (ca. 65 € inkl. USB-Verlängerung), und die Thread-Geräte werden neu eingebunden.
