@@ -1,0 +1,3 @@
+# Spinel over the XIAO's native USB (USB Serial/JTAG) instead of UART0,
+# whose default pins the XIAO doesn't break out.
+CONFIG_OPENTHREAD_RCP_USB_SERIAL_JTAG=y

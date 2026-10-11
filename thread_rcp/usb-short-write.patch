@@ -1,0 +1,43 @@
+diff --git a/components/openthread/src/port/esp_openthread_uart.c b/components/openthread/src/port/esp_openthread_uart.c
+index 1e19af66..e0ddf169 100644
+--- a/components/openthread/src/port/esp_openthread_uart.c
++++ b/components/openthread/src/port/esp_openthread_uart.c
+@@ -19,6 +19,8 @@
+ #include "esp_openthread_types.h"
+ #include "esp_vfs.h"
+ #include "esp_vfs_dev.h"
++#include "freertos/FreeRTOS.h"
++#include "freertos/task.h"
+ #include "common/logging.hpp"
+ #include "driver/uart.h"
+ #include "driver/uart_vfs.h"
+@@ -52,17 +54,24 @@ otError otPlatUartFlush(void)
+ 
+ otError otPlatUartSend(const uint8_t *buf, uint16_t buf_length)
+ {
+-    int rval = write(s_uart_fd, buf, buf_length);
++    // A short write used to return FAILED without otPlatUartSendDone(), which
++    // stalls the Spinel link for good (RCP "hangs after a few hours" on USB).
++    // Send the rest instead; never resend bytes already written.
++    while (buf_length > 0) {
++        int rval = write(s_uart_fd, buf, buf_length);
++        if (rval > 0) {
++            buf += rval;
++            buf_length -= rval;
++        } else {
++            vTaskDelay(1); // host not draining (or briefly gone): yield, retry
++        }
++    }
+ 
+     // DIG-727
+ #if CONFIG_OPENTHREAD_RCP_USB_SERIAL_JTAG
+     usb_serial_jtag_ll_txfifo_flush();
+ #endif
+ 
+-    if (rval != (int)buf_length) {
+-        return OT_ERROR_FAILED;
+-    }
+-
+     otPlatUartSendDone();
+ 
+     return OT_ERROR_NONE;

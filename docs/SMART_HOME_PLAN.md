@@ -42,7 +42,7 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 | Brain | Home Assistant (Pi 4, LAN, .77) | Hält alle Logik: Szenen, Zeitpläne, Automationen |
 | Voice channel | Alexa (Echo Dot 3) | Darf schalten, hält keine Logik |
 | Radio bridge | Hue Bridge v2 | Zigbee-Funk, auch für die IKEA-Birnen im Zigbee-Modus |
-| Thread radio | ESP32-C6 (Test), sonst HA Connect ZBT-2 | **Backlog.** Kommt erst, wenn ein Gerät Thread wirklich braucht |
+| Thread radio | XIAO ESP32-C6 (Test), sonst HA Connect ZBT-2 | **Live seit 2026-10-11** im Zwei-Wochen-Test (bis 2026-10-25) |
 | Failsafe | Schalter an der Lampe / Knopf am Stecker | Funktioniert ohne Brain |
 
 **Kaufregel:** Gekaufte Fertiggeräte (Sensoren, Stecker, Lampen) nur noch als **Matter-over-Thread**. Selbstbau läuft über **ESPHome** (WLAN, lokal). Kein eigenes Zigbee-Netz aufbauen. Die Hue Bridge bleibt nur für die zwei KAJPLATS im Zigbee-Modus und fällt weg, sobald sie auf Thread umgezogen sind. Als Sensoren nimmt die Hue Bridge ohnehin praktisch nur Hue-Geräte an.
@@ -229,8 +229,8 @@ actions:
 
 ---
 
-## Backlog – Thread radio
-Kommt, sobald ein Gerät Thread wirklich braucht. Voraussichtlich ist das der Küchenstecker.
+## Thread radio
+**Stand 2026-10-11:** Live. XIAO ESP32-C6 mit eingebauter Antenne (keine externe vorhanden) am Pi, OTBR-App 3.3.0, HA-Netz `ha-thread-ce3a` auf Kanal 15, als bevorzugtes Netz gesetzt. Vorgezogen, weil das Flurlicht im Zigbee-Modus nach dem Stromausfall nicht mehr erreichbar war (siehe 1.5). Firmware bauen und flashen: `thread_rcp/build.sh <port>`.
 
 **Erst testen: ESP32-C6 (ca. 5–10 €).** Ein Board mit Antennenanschluss nehmen, zum Beispiel XIAO ESP32-C6. Firmware: Espressifs OpenThread RCP aus dem esp-idf. Das busware-Projekt „esp-coordinator“ ist Zigbee-Firmware und passt hier nicht.
 **Abbruchkriterium:** Läuft der C6 zwei Wochen stabil und erreicht er die Küche, bleibt er. Sonst wird der **ZBT-2** gekauft (ca. 65 € inkl. USB-Verlängerung), und die Thread-Geräte werden neu eingebunden.
@@ -243,7 +243,7 @@ Was dann möglich wird:
 - **`emulated_hue`** für Geräte, die nur HA kennt, mit fester Geräteliste (siehe ADR 0001).
 
 Einrichtung mit dem ESP32-C6:
-1. OpenThread-RCP-Firmware flashen. Der Firmware-Stand muss zur OTBR-App passen, sonst gibt es Timeouts.
+1. OpenThread-RCP-Firmware flashen: `thread_rcp/build.sh <port>` (ESP-IDF v6.0-beta1, USB statt UART, eigener Patch gegen Hänger bei kurzen USB-Writes). Der Firmware-Stand muss zur OTBR-App passen, sonst gibt es Timeouts. Nach OTBR-Updates prüfen, ggf. neu bauen.
 2. Den C6 über eine USB-Verlängerung an einen USB-2-Port des Pi stecken.
 3. HA → Apps → „OpenThread Border Router“ installieren. Gerät: `/dev/serial/by-id/usb-Espressif_USB_JTAG…`. Hardware-Flusskontrolle **aus**.
 4. Einstellungen → System → Netzwerk → IPv6 auf **Automatisch**.

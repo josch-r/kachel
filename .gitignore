@@ -4,3 +4,4 @@ include/secrets.h
 .vscode/
 .kachel
 __pycache__/
+thread_rcp/build/
