@@ -19,8 +19,8 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 **Es wartet auf den Agenten** (jeder Schreibzugriff auf HA erst nach Joschs Go):
 1. 0.4: Bereich „Flur“ anlegen, Schreibi nach „Büro“, Bereich „Josch's Schreibtisch“ löschen.
 2. ~~1.2~~ erledigt 2026-09-30: `light.flur`, Bereich „Flur“, in allen Kachel-Szenen. Siehe 1.5 zum Aus-Problem.
-3. 2.2: ESPHome-Konfiguration für den Flur-Sensor schreiben, sobald die Teile da sind.
-4. 2.4: Die Automation anlegen. Der Entity-Name `binary_sensor.flur_praesenz` ist angenommen und muss zur ESPHome-Konfiguration passen.
+3. 2.2: Radar an die KVB-Tafel im Flur, Firmware-Ticket [kvb-departure-board#1](https://github.com/josch-r/kvb-departure-board/issues/1) (Josch).
+4. 2.4: Helfer `input_boolean.flur_praesenz`, Webhook-Automation und Präsenz-Automation anlegen, sobald die Tafel sendet.
 
 **Zugang zu HA:**
 - `http://192.168.178.77:8123`, nur aus dem Heimnetz erreichbar. Token in `.kachel/ha_token` (gitignored).
@@ -56,7 +56,7 @@ Menünamen in der Fritz!Box und in den Apps können je nach Version leicht abwei
 | Oma | Tapo P100 (.57) | Wohnzimmer | WLAN → HA | ausgesteckt |
 | Küche | Tapo P100 (.58) | Küche | WLAN → HA | fällt am Küchenplatz aus (WLAN-Empfang), steht derzeit neben der Fritz!Box |
 | Limette | Tapo L610 (.56) | Wohnzimmer | WLAN → HA | ok, **Auto-Update an** |
-| Küchenglas | IKEA KAJPLATS E14 CWS, Matter over Thread (fw 1.1.0) | Küche (über der Küchenzeile) | Thread → HA (`light.kuchenglas`) | seit 2026-10-11 auf Thread. Alter Hue-Eintrag „Frau Marschik“ in HA als `light.kuchenglas_hue_alt` deaktiviert, bis er in der Hue-App gelöscht ist |
+| Küchenglas | IKEA KAJPLATS E14 CWS, Matter over Thread (fw 1.2.0) | Küche (über der Küchenzeile) | Thread → HA (`light.kuchenglas`) | seit 2026-10-11 auf Thread. Alter Hue-Eintrag „Frau Marschik“ in HA als `light.kuchenglas_hue_alt` deaktiviert, bis er in der Hue-App gelöscht ist |
 | Flurlicht | IKEA KAJPLATS E27 CWS, Matter over Thread (fw 1.2.0) | Flur | Thread → HA (`light.flur`) | seit 2026-10-11 auf Thread, normales Aus funktioniert (1.5). Alter Hue-Eintrag als `light.flur_hue_alt` deaktiviert |
 | Luftreiniger | Levoit Core 300S | Wohnzimmer | VeSync-Cloud → HA | ok |
 | Kachel | ESP32-S3, fw 0.7.1-scenes | Küche | MQTT → .77 | ok |
@@ -73,7 +73,7 @@ Preise geschätzt.
 | Teil | ca. | Wofür | Stand |
 |---|---|---|---|
 | HLK-LD2410C (Radar-Präsenzsensor, 2,54-mm-Stiftleiste) | 4 € | Flur-Sensor (Phase 2) | entschieden |
-| ESP32-C3 | 4 € | Flur-Sensor | entschieden |
+| ~~ESP32-C3~~ | – | Flur-Sensor | entfällt 2026-10-12: Radar hängt an der KVB-Tafel (CYD) im Flur |
 | ESP32-C3 (kein ESP8266, wegen Bluetooth) | 4 € | Velux-Fernbedienung, Bluetooth-Proxy | empfohlen |
 | BME280 (Temperatur, Feuchte) | 3 € | Schlafzimmer, am Velux-ESP | empfohlen |
 | 2× ESP32-C6 mit Antennenanschluss + externe 2,4-GHz-Antenne (U.FL) | 19 € | Thread radio, Ersatz oder Thread-Verstärker Richtung Küche | empfohlen |
@@ -130,8 +130,8 @@ Dieser Weg hat beim Küchenglas (damals „Frau Marschik“) funktioniert. Die B
 „Alexa, suche neue Geräte“. Die Lampe kommt über die Hue-Verbindung von Alexa. Danach den Flur in die Alexa-Gruppe **Flur** aufnehmen.
 
 ### 1.4 Abnahme [Du]
-- [ ] Der Flur lässt sich über HA, Alexa und die Kachel („Alles an“/„Alles aus“) schalten und dimmen.
-- [ ] Lampenschalter aus, 10 s warten, wieder an → das Licht brennt und ist innerhalb von ca. 1 Minute in HA wieder erreichbar.
+- [x] Der Flur lässt sich über HA, Alexa und die Kachel („Alles an“/„Alles aus“) schalten und dimmen.
+- [x] Lampenschalter aus, 10 s warten, wieder an → das Licht brennt und ist innerhalb von ca. 1 Minute in HA wieder erreichbar.
 
 **Wenn An/Aus nicht funktioniert** (bei einigen Nutzern bekannt): die Birne in der Hue-App löschen, 6-mal aus- und einschalten (Reset, sie blinkt warmweiß), 10 s warten, dann 1.1 mit 12 oder 15 Zyklen wiederholen.
 
@@ -150,24 +150,22 @@ Dieser Weg hat beim Küchenglas (damals „Frau Marschik“) funktioniert. Die B
 
 ---
 
-## Phase 2 – Flur-Sensor im Selbstbau (ESPHome)
+## Phase 2 – Flur-Sensor an der KVB-Tafel
 
-Im Flur ist eine Steckdose vorhanden. Der Sensor läuft im WLAN und braucht kein Thread.
+**Stand 2026-10-12:** Kein eigener ESP. Der LD2410C hängt an der KVB-Abfahrtstafel (ESP32 CYD), die schon im Flur hängt. Die Tafel meldet nur Präsenz per Webhook an HA, HA entscheidet über das Licht. Details und Abnahme der Firmware: [kvb-departure-board#1](https://github.com/josch-r/kvb-departure-board/issues/1).
 
 ### 2.1 Aufbau [Du]
-| LD2410C | ESP32-C3 |
+| LD2410C | CYD |
 |---|---|
-| VCC | 5V |
-| GND | GND |
-| TX | freier GPIO als RX |
-| RX | freier GPIO als TX |
+| VCC | P1 VIN (5 V) |
+| GND | P1 GND |
+| OUT | CN1 GPIO27 |
 
-Der Radar braucht 5 V Versorgung, seine Datenpins arbeiten mit 3,3 V. UART-Geschwindigkeit: 256000 Baud.
+Der Radar braucht 5 V, CN1 hat nur 3,3 V. OUT ist ein 3,3-V-Signal (high = jemand da), kein UART nötig.
 
-### 2.2 Firmware [Claude + Du]
-- [Du] HA → Apps → „ESPHome Device Builder“ installieren.
-- [Claude] ESPHome-Konfiguration schreiben: `ld2410` (Präsenz), feste IP.
-- [Du] Einmal per USB flashen, danach Updates über WLAN. Das Gerät in HA dem Bereich **Flur** zuordnen.
+### 2.2 Firmware und HA-Anbindung
+- [Du] KVB-Firmware: OUT lesen, bei Änderung und alle 5 min `{"present": true|false}` an einen HA-Webhook senden (Ticket oben).
+- [Claude] HA: Helfer `input_boolean.flur_praesenz`, Automation mit Webhook-Trigger (`local_only`), die den Helfer setzt.
 
 ### 2.3 Einstellen [Du]
 Der Radar sieht durch dünne Türen und Trockenbauwände. In der App „HLKRadarTool“ (Bluetooth) die Reichweite so weit verringern, dass Bewegung im Nachbarraum nicht mehr auslöst.
@@ -183,11 +181,11 @@ alias: "Flur: Licht bei Präsenz im Dunkeln"
 mode: restart
 triggers:
   - trigger: state
-    entity_id: binary_sensor.flur_praesenz
+    entity_id: input_boolean.flur_praesenz
     to: "on"
     id: kommt
   - trigger: state
-    entity_id: binary_sensor.flur_praesenz
+    entity_id: input_boolean.flur_praesenz
     to: "off"
     for: "00:02:00"
     id: geht
